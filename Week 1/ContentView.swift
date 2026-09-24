@@ -77,6 +77,10 @@ struct ContentView: View {
                 .foregroundColor(.white)
             
             Text("\(count)")
+                .padding()
+                .foregroundStyle(.white)
+                .background(.black)
+                .cornerRadius(16)
             
             Button("Decrement"){
                 count = count - 1
@@ -98,3 +102,185 @@ struct ContentView: View {
 
 
 
+
+//import SwiftUI
+
+//
+
+//struct ContentView: View {
+
+//
+
+////    @State var count: Int = 0
+
+////    @State var userInput: String = ""
+
+//    @State var count: Int = 0
+
+//
+
+////    var body: some View {
+
+////
+
+////        TextField("placeholder", text: $userInput)
+
+////
+
+////        Button("Click") {
+
+////            print(userInput)
+
+////        }
+
+////
+
+////    }
+
+//
+
+//    var body: some View{
+
+//        VStack {
+
+//            Text("\(count)")
+
+//
+
+//            CustomButton(countValue: $count)
+
+//        }
+
+//    }
+
+//
+
+//
+
+//
+
+//}
+
+//
+
+//struct CustomButton: View {
+
+//    @Binding var countValue: Int
+
+//
+
+//    var body: some View {
+
+//        Button("Click Me") {
+
+//            countValue = countValue + 1
+
+//
+
+//        }
+
+//    }
+
+//}
+
+//
+
+//#Preview {
+
+//    ContentView()
+
+//}
+
+//
+
+//
+
+//ScrollView(.vertical){
+
+//    VStack(spacing:20){
+
+//        Text("Hello, World!")
+
+//            .font(.title)
+
+//            .bold()
+
+//
+
+//        Text("------- hi ---------")
+
+//            .font(.title)
+
+//            .bold()
+
+//
+
+//        HStack(spacing:30){
+
+//            Button{
+
+//                count =  count + 1
+
+//            } label: {
+
+//                Text("Increment")
+
+//                    .font(.default)
+
+//                    .bold()
+
+//                    .foregroundStyle(.white)
+
+//                    .padding()
+
+//                    .background(.black)
+
+//                    .cornerRadius(16)
+
+//            }
+
+//
+
+//            Text("\(count)")
+
+//                .padding()
+
+//                .bold()
+
+//                .font(.title)
+
+//
+
+//            Button{
+
+//                count = count - 1
+
+//
+
+//
+
+//            } label: {
+
+//                Text("Decrement")
+
+//                    .font(.default)
+
+//                    .bold()
+
+//                    .foregroundStyle(.white)
+
+//                    .padding()
+
+//                    .background(.black)
+
+//                    .cornerRadius(16)
+
+//
+
+//            }
+
+//        }
+
+//    }
+
+//}
