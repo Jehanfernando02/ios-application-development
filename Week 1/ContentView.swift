@@ -54,7 +54,8 @@ struct ContentView: View {
                    .frame(width: 120, height: 120)
 
                Text("Hello")
-                   .foregroundColor(.white)
+                   .foregroundColor(.green)
+                   .bold()
            }
         
     }
