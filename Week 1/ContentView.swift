@@ -5,10 +5,10 @@
 //  Created by Jehan Fernando on 2026-09-24.
 //
 
-import SwiftUI
+//import SwiftUI
 
-struct ContentView: View {
-    var body: some View {
+//struct ContentView: View {
+//    var body: some View {
         
         //VStack
 //        VStack(spacing: 20) {
@@ -44,26 +44,56 @@ struct ContentView: View {
 //        }
         
 //        ZSack is used to place views on top of each other — like layers.
-            ZStack {
-               Rectangle()
-                   .foregroundColor(.blue)
-                   .frame(width: 200, height: 200)
-
-               Rectangle()
-                   .foregroundColor(.yellow)
-                   .frame(width: 120, height: 120)
-
-               Text("Hello")
-                   .foregroundColor(.green)
-                   .bold()
-           }
+//            ZStack {
+//               Rectangle()
+//                   .foregroundColor(.blue)
+//                   .frame(width: 200, height: 200)
+//
+//               Rectangle()
+//                   .foregroundColor(.yellow)
+//                   .frame(width: 120, height: 120)
+//
+//               Text("Hello")
+//                   .foregroundColor(.green)
+//                   .bold()
+//           }
         
+//    }
+//}
+
+import SwiftUI
+
+struct ContentView: View {
+    
+    @State var count:Int = 0
+    
+    var body: some View {
+        HStack(spacing:30){
+            Button("Increment"){
+                count = count + 1
+            }
+                .padding()
+                .background(.blue)
+                .foregroundColor(.white)
+            
+            Text("\(count)")
+            
+            Button("Decrement"){
+                count = count - 1
+            }
+                .padding()
+                .background(.blue)
+                .foregroundColor(.white)
+            
+        }
     }
 }
+
 
 #Preview {
     ContentView()
 }
+
 
 
 
