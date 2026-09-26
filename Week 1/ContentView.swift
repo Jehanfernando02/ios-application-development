@@ -68,7 +68,7 @@ struct ContentView: View {
     @State var count:Int = 0
     
     var body: some View {
-        HStack(spacing:30){
+        HStack(spacing:20){
             Button("Increment"){
                 count = count + 1
             }
