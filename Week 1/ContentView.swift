@@ -65,6 +65,8 @@ import SwiftUI
 
 struct ContentView: View {
     
+    // @State allows the value to change
+       // and automatically updates the UI when it changes.
     @State var count:Int = 0
     
     var body: some View {
