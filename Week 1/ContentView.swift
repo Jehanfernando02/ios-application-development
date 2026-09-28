@@ -158,3 +158,10 @@ struct CustomButton: View {
 #Preview {
     ContentView()
 }
+
+
+//@State     → owns the value
+//$count     → passes the connection
+//@Binding   → receives the connection
+//
+//So CustomButton is changing the same count that ContentView owns.
