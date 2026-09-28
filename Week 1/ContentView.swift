@@ -5,6 +5,8 @@
 //  Created by Jehan Fernando on 2026-09-24.
 //
 
+// ---------------------------------------------------------------------
+
 //import SwiftUI
 
 //struct ContentView: View {
@@ -61,6 +63,9 @@
 //    }
 //}
 
+// ---------------------------------------------------------------------
+
+/*
 import SwiftUI
 
 struct ContentView: View {
@@ -71,12 +76,17 @@ struct ContentView: View {
     
     var body: some View {
         HStack(spacing:20){
-            Button("Increment"){
+            
+            Button {
                 count = count + 1
             }
-                .padding()
-                .background(.blue)
-                .foregroundColor(.white)
+            
+            label: {
+                Text("Increment")
+                    .padding()
+                    .background(.blue)
+                    .foregroundColor(.white)
+            }
             
             Text("\(count)")
                 .padding()
@@ -100,189 +110,51 @@ struct ContentView: View {
     ContentView()
 }
 
+ */
 
+// ---------------------------------------------------------------------
 
 
+import SwiftUI
 
+// @State = this View owns the value
+struct ContentView: View {
 
-//import SwiftUI
+    @State var count: Int = 0
 
-//
+    var body: some View {
+        VStack {
 
-//struct ContentView: View {
+            // Shows the current count
+            Text("\(count)")
 
-//
+            // $count passes a binding to the child View
+            CustomButton(countValue: $count)
+        }
+    }
+}
 
-////    @State var count: Int = 0
 
-////    @State var userInput: String = ""
+// @Binding = this View can use and change
+// a value owned by another View
+struct CustomButton: View {
 
-//    @State var count: Int = 0
+    @Binding var countValue: Int
 
-//
+    var body: some View {
+        Button("Click Me") {
 
-////    var body: some View {
+            // Changes the original count in ContentView
+            countValue = countValue + 1
+        }
+            .padding()
+            .background(.blue)
+            .foregroundStyle(.white)
+            .cornerRadius(10)
+    }
+}
 
-////
 
-////        TextField("placeholder", text: $userInput)
-
-////
-
-////        Button("Click") {
-
-////            print(userInput)
-
-////        }
-
-////
-
-////    }
-
-//
-
-//    var body: some View{
-
-//        VStack {
-
-//            Text("\(count)")
-
-//
-
-//            CustomButton(countValue: $count)
-
-//        }
-
-//    }
-
-//
-
-//
-
-//
-
-//}
-
-//
-
-//struct CustomButton: View {
-
-//    @Binding var countValue: Int
-
-//
-
-//    var body: some View {
-
-//        Button("Click Me") {
-
-//            countValue = countValue + 1
-
-//
-
-//        }
-
-//    }
-
-//}
-
-//
-
-//#Preview {
-
-//    ContentView()
-
-//}
-
-//
-
-//
-
-//ScrollView(.vertical){
-
-//    VStack(spacing:20){
-
-//        Text("Hello, World!")
-
-//            .font(.title)
-
-//            .bold()
-
-//
-
-//        Text("------- hi ---------")
-
-//            .font(.title)
-
-//            .bold()
-
-//
-
-//        HStack(spacing:30){
-
-//            Button{
-
-//                count =  count + 1
-
-//            } label: {
-
-//                Text("Increment")
-
-//                    .font(.default)
-
-//                    .bold()
-
-//                    .foregroundStyle(.white)
-
-//                    .padding()
-
-//                    .background(.black)
-
-//                    .cornerRadius(16)
-
-//            }
-
-//
-
-//            Text("\(count)")
-
-//                .padding()
-
-//                .bold()
-
-//                .font(.title)
-
-//
-
-//            Button{
-
-//                count = count - 1
-
-//
-
-//
-
-//            } label: {
-
-//                Text("Decrement")
-
-//                    .font(.default)
-
-//                    .bold()
-
-//                    .foregroundStyle(.white)
-
-//                    .padding()
-
-//                    .background(.black)
-
-//                    .cornerRadius(16)
-
-//
-
-//            }
-
-//        }
-
-//    }
-
-//}
+#Preview {
+    ContentView()
+}
