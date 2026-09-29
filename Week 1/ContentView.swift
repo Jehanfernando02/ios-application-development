@@ -148,7 +148,7 @@ struct CustomButton: View {
             countValue = countValue + 1
         }
             .padding()
-            .background(.blue)
+            .background(.green)
             .foregroundStyle(.white)
             .cornerRadius(10)
     }
