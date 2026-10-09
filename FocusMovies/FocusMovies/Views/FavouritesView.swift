@@ -8,11 +8,37 @@
 import SwiftUI
 
 struct FavouritesView: View {
+
+    @Environment(MovieViewModel.self) private var viewModel
+
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        NavigationStack {
+            List {
+                ForEach(viewModel.favoriteMovies()) { movie in
+
+                    HStack {
+                        Image(movie.imageName)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 80, height: 110)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                        Text(movie.title)
+                            .font(.headline)
+
+                        Spacer()
+
+                        Image(systemName: "heart.fill")
+                            .foregroundStyle(.red)
+                    }
+                }
+            }
+            .navigationTitle("Favorites")
+        }
     }
 }
 
 #Preview {
     FavouritesView()
+        .environment(MovieViewModel())
 }

@@ -6,52 +6,11 @@
 //
 
 import SwiftUI
-import Observation
-
-enum Priority: String {
-    case low
-    case medium
-    case high
-}
-
-//Protocol Identifiable to have id, since title, priority, isComplete is not suitable
-struct TaskItem: Identifiable {
-    var id = UUID()
-    var title: String
-    var priority: Priority
-    var isComplete: Bool
-}
-
-@Observable
-class TasksViewModel {
-    private(set) var tasks: [TaskItem] = [
-        TaskItem(title: "Review Literature Notes", priority: .high, isComplete: false),
-        TaskItem(title: "Test search field", priority: .medium, isComplete: false),
-        TaskItem(title: "Read SwiftUI documentation", priority: .low, isComplete: true),
-    ]
-    
-     func addNewTask() {
-        let newItem = TaskItem( title: "Complete FocusTask", priority: .high,
-isComplete: false
-        )
-
-        tasks.append(newItem)
-    }
-
-     func toggleComplete(task: TaskItem) {
-        guard let index = tasks.firstIndex(where: { $0.id == task.id }) else {
-            return
-        }
-
-        tasks[index].isComplete.toggle()
-    }
-    
-}
 
 struct TasksView: View {
     
-    @State private var viewModel = TasksViewModel()
-    
+//    @Bindable var viewModel: TasksViewModel
+    @Environment(TasksViewModel.self) private var viewModel
     
     
     var body: some View {
@@ -121,4 +80,5 @@ struct TasksView: View {
 
 #Preview {
     TasksView()
+        .environment(TasksViewModel())
 }

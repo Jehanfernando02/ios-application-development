@@ -5,14 +5,11 @@
 //  Created by Jehan Fernando on 2026-10-07.
 //
 
-import SwiftUI
+import Foundation
 
-struct Movie: View {
-    var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
-    }
-}
-
-#Preview {
-    Movie()
+struct Movie: Identifiable {
+    let id = UUID()
+    let title: String
+    let imageName: String
+    var isFavourite: Bool
 }

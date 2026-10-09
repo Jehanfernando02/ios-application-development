@@ -8,11 +8,46 @@
 import SwiftUI
 
 struct MoviesView: View {
+
+    @Environment(MovieViewModel.self) private var viewModel
+
     var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+        NavigationStack {
+            List {
+                ForEach(viewModel.movies) { movie in
+
+                    HStack {
+                        Image(movie.imageName)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 80, height:100)
+                        
+                        VStack(alignment: .leading) {
+                            Text(movie.title)
+                                .font(.headline)
+
+                            Button {
+                                viewModel.toggleFavorite(movie: movie)
+                            } label: {
+                                Image(
+                                    systemName: movie.isFavourite
+                                    ? "heart.fill"
+                                    : "heart"
+                                )
+                                .foregroundStyle(
+                                    movie.isFavourite ? .red : .secondary
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+            .navigationTitle("Movies")
+        }
     }
 }
 
 #Preview {
     MoviesView()
+        .environment(MovieViewModel())
 }
