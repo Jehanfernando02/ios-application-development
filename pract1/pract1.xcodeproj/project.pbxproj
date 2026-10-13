@@ -6,14 +6,19 @@
 	objectVersion = 110;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		9EB1E949307E43ED002FA6B3 /* ContentView1.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EB1E948307E43ED002FA6B3 /* ContentView1.swift */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		9EB1E938307E3D54002FA6B3 /* pract1.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = pract1.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9EB1E948307E43ED002FA6B3 /* ContentView1.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView1.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		9EB1E93A307E3D54002FA6B3 /* pract1 */ = {
+		9EB1E93A307E3D54002FA6B3 /* week2 */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = pract1;
+			path = week2;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -30,7 +35,8 @@
 		9EB1E92F307E3D54002FA6B3 = {
 			isa = PBXGroup;
 			children = (
-				9EB1E93A307E3D54002FA6B3 /* pract1 */,
+				9EB1E947307E43D6002FA6B3 /* week1 */,
+				9EB1E93A307E3D54002FA6B3 /* week2 */,
 				9EB1E939307E3D54002FA6B3 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +47,14 @@
 				9EB1E938307E3D54002FA6B3 /* pract1.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		9EB1E947307E43D6002FA6B3 /* week1 */ = {
+			isa = PBXGroup;
+			children = (
+				9EB1E948307E43ED002FA6B3 /* ContentView1.swift */,
+			);
+			path = week1;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -57,7 +71,7 @@
 			buildRules = (
 			);
 			fileSystemSynchronizedGroups = (
-				9EB1E93A307E3D54002FA6B3 /* pract1 */,
+				9EB1E93A307E3D54002FA6B3 /* week2 */,
 			);
 			name = pract1;
 			productName = pract1;
@@ -110,6 +124,7 @@
 		9EB1E934307E3D54002FA6B3 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			files = (
+				9EB1E949307E43ED002FA6B3 /* ContentView1.swift in Sources */,
 			);
 		};
 /* End PBXSourcesBuildPhase section */

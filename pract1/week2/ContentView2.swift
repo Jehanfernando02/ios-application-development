@@ -1,5 +1,21 @@
 import SwiftUI
 
+//protocol MyProtocol {
+//
+//}
+//
+//class CParent: MyProtocol {
+//
+//}
+//
+//class SParent: MyProtocol {
+//
+//}
+//
+//
+//
+
+
 // An enum defines a fixed set of possible values.
 // CaseIterable allows us to access all cases using MuscleGroup.allCases.
 enum MuscleGroup: CaseIterable {
@@ -47,7 +63,10 @@ struct Workout {
 }
 
 
-
+// Accepts a Workout object and returns true if its duration is 50 minutes or more.
+func isLongWorkout(workout: Workout) -> Bool{
+    workout.duration >= 50
+}
 
 struct ContentView2: View {
     // An array containing Workout instances.
@@ -60,13 +79,132 @@ struct ContentView2: View {
           Workout(name: "PullUps", muscleGroup: .back, duration: 30)
     ]
     
-    var body: some View {
-        List(workouts, id:\.name) { workout in
-            Text(workout.name)
-        }
+    
+    // @ViewBuilder allows us to combine multiple views
+    // into a single view-building property.
+    
+    @ViewBuilder
+    var greeting1: some View {
+//        ForEach(MuscleGroup.allCases, id:\.self) { group in
+//            Text("\(group.displayName)")
+//        }
+//        
+//        Divider()
+        
+        Section {
+            // ForEach repeats the view for every workout in the array. Identifiable values are not required here because we provide an ID using the workout name.
+            
+            ForEach(workouts, id: \.name) { workout in
+                
+                VStack(alignment: .leading) {
+                    
+                    Text(workout.name)
+                    
+                    // String interpolation converts the values into displayable text.
+                    
+                    Text("\(workout.muscleGroup)")
+                    
+                    Text("\(workout.duration)")
+                    
+                }
+            }
     }
+}
+    
+    @ViewBuilder
+    var greeting2: some View {
+
+        Section {
+
+            // let filteredItems = workouts.filter(isLongWorkout)
+
+            // let filteredItems = workouts.filter { workout in
+            //    workout.duration >= 50
+            //   }
+
+            let filteredItems = workouts.filter {
+
+                $0.duration >= 50
+
+            }
+
+            // Display only the filtered workouts.
+            ForEach(filteredItems, id: \.name) { workout in
+
+                VStack(alignment: .leading) {
+
+                    Text("Only with workout duration >= 50")
+                    Divider()
+                    Text(workout.name)
+
+                    Text("\(workout.muscleGroup)")
+
+                    Text("\(workout.duration)")
+
+                }
+
+            }
+
+        }
+
+    }
+
+    var body: some View {
+
+        List {
+
+            greeting1
+
+            greeting2
+
+        }
+
+    }
+
 }
 
 #Preview {
     ContentView2()
 }
+
+
+
+//
+//let intArray = [1,2,3,4,5]
+//let stringArr ["a","b","c","d","e"]
+//
+//
+////func returnFirstValue<T>(array: [T]) -> T {
+////    return array[0]
+////}
+//
+
+
+/* <T> makes this a generic function.
+T can represent different types, such as Int or String.
+The function returns the first element of the supplied array.
+*/
+
+
+//
+//func returnFirstValue<T>(externalParamName x: [T]) -> T {
+//    return x[0]
+//}
+//
+//returnFirstValue(externalParamName: intArray)
+
+//returnFirstValue(array: intArray)
+//returnFirstValue(array: stringArr)
+
+//func returnFirstIntValue(array: [Int]) -> Int {
+//    return array[0]
+//}
+//
+//func returnFirstStringValue(array: [String]) -> String {
+//    return array[0]
+//}
+
+
+
+
+
