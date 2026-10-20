@@ -10,6 +10,7 @@ import Observation
 @Observable
 class TasksViewModel {
 
+    // private(set) allows other code to read tasks, but restricts direct modification to the defining type.
     private(set) var tasks: [TaskItem] = [
         TaskItem(title: "Review Literature Notes", priority: .high, isComplete: false),
         TaskItem(title: "Test search field", priority: .medium, isComplete: false),

@@ -1,0 +1,2428 @@
+App entry point : Creates shared preferences and launches the movie list
+
+Model : Movie, Genre, sample data
+ViewModels : Movie list, search, add form
+Views : MovieListView , MovieDetailView , AddMovieView , SettingsSheetView
+Reusable components: movie row, genre badge, rating and metadata
+
+The key principle is separation of responsibilities:
+- Model: describes a movie and its genre.
+- ViewModel: owns the data and implements actions such as searching and adding movies.
+- View: draws the screen and responds to user interaction.
+- App: launches the app and provides shared settings.
+
+
+
+
+
+
+
+
+
+# 🎬 MovieGenreFilter — SwiftUI MVVM Tutorial Notes
+
+---
+
+## 📌 Overview
+
+**App entry point:** Creates shared preferences and launches the movie list.
+
+- **Model:** `Movie`, `Genre`, sample data
+- **ViewModels:** Movie list, search, add form
+- **Views:** `MovieListView`, `MovieDetailView`, `AddMovieView`, `SettingsSheetView`
+- **Reusable components:** movie row, genre badge, rating and metadata
+
+### Key principle: separation of responsibilities
+
+- **Model:** describes a movie and its genre.
+- **ViewModel:** owns the data and implements actions such as searching and adding movies.
+- **View:** draws the screen and responds to user interaction.
+- **App:** launches the app and provides shared settings.
+
+### What the app does
+
+The app is a small movie tracker. It lets the user:
+
+- Browse movies and see their genre, year, rating and watched status.
+- Open a movie to view its synopsis and duration.
+- Mark a movie as watched.
+- Search movies by title.
+- Add a new movie through a form.
+- Delete movies from the list.
+- Change the app's appearance and display name.
+
+> In Parts 1 and 2, the data lives in memory. There is no database yet. Part 3 of your tutorial will introduce SwiftData.
+
+---
+
+## 1️⃣ Understand the architecture first
+
+The tutorial uses **MVVM** = **Model–View–ViewModel**.
+
+| Layer | Contains | Purpose |
+|---|---|---|
+| **Model** | `Movie`, `Genre`, `MockDataStore` | Describes the data and domain concepts. |
+| **ViewModel** | `MovieListViewModel`, `AddMovieViewModel` | Owns state, filtering, validation and actions. |
+| **View** | `MovieListView`, `MovieDetailView`, `AddMovieView`, reusable components | Displays state and communicates user actions. |
+
+### Simple example: the user types "dune" in the search bar
+
+1. The View receives the typed input.
+2. A binding updates `searchText` in the ViewModel.
+3. The ViewModel calculates `filteredMovies`.
+4. SwiftUI updates the View to show the filtered results.
+
+The View doesn't need to know how filtering is implemented. The ViewModel doesn't need to know how the search bar is drawn.
+
+### What each layer should do
+
+| Layer | Responsibilities in this app |
+|---|---|
+| Model | Define a movie's properties and the available genres. |
+| ViewModel | Hold the movie list, filter it, validate form input, and implement actions. |
+| View | Draw the list, detail screen, form and settings. |
+| Reusable components | Draw repeated elements such as genre badges and ratings. |
+| App | Create the app's root screen and provide shared preferences. |
+
+> **Why this matters:** when you add SwiftData in Part 3, you can change the storage mechanism without putting database code into every screen. When you add filters in Part 4, you can extend the ViewModel without redesigning the whole UI.
+
+---
+
+# Part 2 — Build a simplified version in one file first
+
+Create a new iOS App project in Xcode with:
+
+- **Product Name:** `MovieGenreFilter`
+- **Interface:** SwiftUI
+- **Language:** Swift
+- **Storage:** None
+
+For this first learning exercise, place the following code in `ContentView.swift`. It combines the basic model, mock data, ViewModel, a reusable row and the list screen into one file. This is deliberately a smaller teaching version; after it works, we'll expand it to the tutorial's full structure.
+
+---
+
+## 2️⃣ Create the model
+
+Start with the movie and genre types.
+
+```swift
+import SwiftUI
+import Observation
+
+enum Genre: String, CaseIterable {
+    case action = "Action"
+    case drama = "Drama"
+    case thriller = "Thriller"
+    case scifi = "Sci-Fi"
+    case comedy = "Comedy"
+
+    var icon: String {
+        switch self {
+        case .action: return "flame.fill"
+        case .drama: return "theatermasks.fill"
+        case .thriller: return "eye.trianglebadge.exclamationmark.fill"
+        case .scifi: return "sparkles"
+        case .comedy: return "face.smiling.fill"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .action: return .red
+        case .drama: return .purple
+        case .thriller: return .orange
+        case .scifi: return .blue
+        case .comedy: return .yellow
+        }
+    }
+}
+
+struct Movie: Identifiable {
+    let id: UUID
+    var title: String
+    var genre: Genre
+    var rating: Double
+    var year: Int
+    var synopsis: String
+    var duration: Int
+    var isWatched: Bool
+
+    init(
+        title: String,
+        genre: Genre,
+        rating: Double,
+        year: Int,
+        synopsis: String,
+        duration: Int,
+        isWatched: Bool = false
+    ) {
+        self.id = UUID()
+        self.title = title
+        self.genre = genre
+        self.rating = rating
+        self.year = year
+        self.synopsis = synopsis
+        self.duration = duration
+        self.isWatched = isWatched
+    }
+}
+```
+
+### 📖 Theory: what is a struct?
+
+A `struct` defines a type of value. Here, `Movie` defines what information each movie contains.
+
+```swift
+var title: String
+var rating: Double
+var year: Int
+var isWatched: Bool
+```
+
+These are **properties**:
+
+- `String` stores text.
+- `Double` stores a decimal number.
+- `Int` stores an integer.
+- `Bool` stores true or false.
+
+The distinction between `let` and `var` matters:
+
+- `let` declares a constant that cannot be reassigned.
+- `var` declares a variable that can be changed.
+
+The ID is declared `let` because a movie's identity should remain stable. Its watched status is `var` because it changes.
+
+### 📖 Theory: why UUID?
+
+```swift
+self.id = UUID()
+```
+
+A `UUID` is a unique identifier. Two movies can have the same title, but each movie instance should have its own identity for list rendering and updates.
+
+The tutorial conforms to `Identifiable` so SwiftUI can identify each movie when iterating through the array. `List` and `ForEach` can then distinguish one movie from another.
+
+### 📖 Theory: why write an initializer?
+
+```swift
+init(
+    title: String,
+    genre: Genre,
+    rating: Double,
+    year: Int,
+    synopsis: String,
+    duration: Int,
+    isWatched: Bool = false
+)
+```
+
+An initializer constructs a new instance. The custom initializer creates the ID automatically and provides a default for `isWatched`.
+
+That means you can write:
+
+```swift
+let movie = Movie(
+    title: "Arrival",
+    genre: .scifi,
+    rating: 7.9,
+    year: 2016,
+    synopsis: "A linguist attempts to communicate with alien visitors.",
+    duration: 116
+)
+```
+
+You don't have to pass an ID or explicitly provide `isWatched`. The initializer handles those details.
+
+### 📖 Theory: what is an enum?
+
+```swift
+enum Genre: String, CaseIterable
+```
+
+An enum defines a limited set of possible values. A movie's genre can be `.action`, `.drama`, `.thriller`, `.scifi` or `.comedy`, rather than arbitrary text.
+
+- `String` means this is a **raw-value enum**: each case has a string representation, such as `"Sci-Fi"`.
+- `CaseIterable` allows Swift to provide all the cases through `Genre.allCases`. This will be useful for generating the genre picker in the Add Movie form.
+
+The properties `icon` and `color` use a `switch` to map each genre to its presentation details. This follows the tutorial's **DRY principle — Don't Repeat Yourself** — because every screen can use the same mapping rather than hard-coding its own colours and icons.
+
+---
+
+## 3️⃣ Add the mock data
+
+Add this below the `Movie` and `Genre` definitions in the same file.
+
+```swift
+struct MockDataStore {
+    static let movies: [Movie] = [
+        Movie(
+            title: "Oppenheimer",
+            genre: .drama,
+            rating: 8.9,
+            year: 2023,
+            synopsis: "The story of J. Robert Oppenheimer's role in the development of the atomic bomb during WWII.",
+            duration: 180
+        ),
+        Movie(
+            title: "Dune: Part Two",
+            genre: .scifi,
+            rating: 8.6,
+            year: 2024,
+            synopsis: "Paul Atreides unites with Chani and the Fremen while seeking revenge.",
+            duration: 166,
+            isWatched: true
+        ),
+        Movie(
+            title: "The Dark Knight",
+            genre: .action,
+            rating: 9.0,
+            year: 2008,
+            synopsis: "Batman faces the Joker, who plunges Gotham City into anarchy.",
+            duration: 152,
+            isWatched: true
+        )
+    ]
+}
+```
+
+> This is a shortened dataset for the one-file exercise. Your actual tutorial's `MockDataStore.swift` contains **nine movies**. We'll restore all nine when we organise the final project.
+
+### 📖 Theory: what does `static let` mean?
+
+```swift
+static let movies: [Movie] = [...]
+```
+
+- `static` means you access it through the type itself, rather than through an instance.
+- `let` means the stored array property cannot be reassigned.
+- `[Movie]` means an array containing `Movie` values.
+
+You can access the sample data directly:
+
+```swift
+MockDataStore.movies
+```
+
+There is no need to write `MockDataStore()` first.
+
+The ViewModel will start with a copy of the array's value. Because Swift arrays use **value semantics**, appending a movie to the ViewModel's array does not append it to `MockDataStore.movies`.
+
+> **Why mock data?** It lets you develop and test the interface without setting up a database, network request or backend. Later, SwiftData will replace the in-memory storage mechanism.
+
+---
+
+## 4️⃣ Create the ViewModel
+
+Add this next.
+
+```swift
+@Observable
+final class MovieListViewModel {
+    var movies: [Movie] = MockDataStore.movies
+
+    func markWatched(_ movie: Movie) {
+        if let index = movies.firstIndex(
+            where: { $0.id == movie.id }
+        ) {
+            movies[index].isWatched = true
+        }
+    }
+}
+```
+
+### 📖 Theory: `@Observable`
+
+`@Observable` comes from the **Observation** framework. It makes the object's stored properties trackable so SwiftUI can update views when relevant state changes.
+
+It is the modern observation approach used by your tutorial, rather than the older `ObservableObject` and `@Published` pattern.
+
+`final` prevents the class from being subclassed. This is appropriate for these small ViewModels because the tutorial doesn't need subclasses.
+
+### 📖 The complex expression: `firstIndex(where:)`
+
+```swift
+movies.firstIndex(where: { $0.id == movie.id })
+```
+
+Let's break it down:
+
+- `firstIndex` searches an array and returns the index of the first matching element.
+- `where:` accepts a condition.
+- `{ ... }` is a **closure** — a block of code passed to a function.
+- `$0` is shorthand for the closure's first argument.
+- `$0.id == movie.id` checks whether the current array movie has the same ID as the movie passed to the method.
+
+The method returns an **optional** index because the movie might not exist in the array.
+
+```swift
+if let index = ...
+```
+
+This is **optional binding**. It unwraps the index if one was found and executes the block only when the index exists.
+
+Then:
+
+```swift
+movies[index].isWatched = true
+```
+
+changes the watched status of the matching movie.
+
+> **Why search by ID rather than title?** IDs identify a particular movie instance. Titles are not guaranteed to be unique.
+
+---
+
+## 5️⃣ Create a reusable movie row
+
+```swift
+struct MovieRowView: View {
+    let movie: Movie
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: movie.genre.icon)
+                .font(.title2)
+                .foregroundColor(movie.genre.color)
+                .frame(width: 44)
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(movie.title)
+                    .font(.headline)
+                    .foregroundColor(
+                        movie.isWatched ? .secondary : .primary
+                    )
+
+                Text("\(movie.genre.rawValue) • \(movie.year)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(String(format: "%.1f", movie.rating))
+                    .font(.caption)
+                    .fontWeight(.bold)
+
+                if movie.isWatched {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                }
+            }
+        }
+        .padding(.vertical, 4)
+    }
+}
+```
+
+### 📖 Theory: View and body
+
+```swift
+struct MovieRowView: View
+```
+
+This declares a SwiftUI view. The `View` protocol requires a `body` property that describes what the interface should look like.
+
+```swift
+var body: some View
+```
+
+`some View` means the property returns a value conforming to `View`, while allowing the compiler to infer its concrete type. A SwiftUI view can combine many nested views into a single expression.
+
+### 📖 Understand the layout containers
+
+- `HStack` arranges children **horizontally**.
+- `VStack` arranges children **vertically**.
+- `Spacer()` takes available space and pushes surrounding content apart.
+- `Image(systemName:)` displays an SF Symbol.
+- `Text` displays text.
+- `.padding()` adds space around content.
+- `.font`, `.foregroundColor` and `.frame` are **view modifiers** that change appearance or layout.
+
+SwiftUI builds the interface by composing these small views. It isn't the same as manually placing every pixel.
+
+### 📖 Understand the ternary operator
+
+```swift
+movie.isWatched ? .secondary : .primary
+```
+
+This is shorthand for an if/else expression:
+
+- If `isWatched` is true, use `.secondary`.
+- Otherwise, use `.primary`.
+
+The row dims the title of a watched movie. The `if movie.isWatched` block also shows a checkmark only when the movie has been watched.
+
+---
+
+## 6️⃣ Create the main list screen
+
+```swift
+struct ContentView: View {
+    @State private var viewModel = MovieListViewModel()
+
+    var body: some View {
+        NavigationStack {
+            List(viewModel.movies) { movie in
+                NavigationLink {
+                    Text(movie.title)
+                        .navigationTitle(movie.title)
+                } label: {
+                    MovieRowView(movie: movie)
+                }
+            }
+            .listStyle(.plain)
+            .navigationTitle("My Movie List")
+        }
+    }
+}
+```
+
+Keep the generated `MovieGenreFilterApp.swift` as the app entry point, pointing to `ContentView()`.
+
+### 📖 Theory: `@State`
+
+```swift
+@State private var viewModel = MovieListViewModel()
+```
+
+This gives the view **ownership** of its ViewModel's lifetime. SwiftUI preserves the state across ordinary view redraws, rather than treating each redraw as a completely new ViewModel.
+
+The `private` keyword limits access to the property to its enclosing type. This is good encapsulation: other views should not reach inside `ContentView` and modify its private state directly.
+
+### 📖 Theory: NavigationStack, List and NavigationLink
+
+- `NavigationStack` manages a navigation hierarchy.
+- `List` creates a scrollable list of rows.
+- `NavigationLink` lets a user select a row and navigate to another view.
+- `.navigationTitle(...)` sets the navigation bar title.
+- `.listStyle(.plain)` changes the list's visual style.
+
+Here, `NavigationLink` displays a simple placeholder detail screen. The full tutorial will replace it with `MovieDetailView`.
+
+### 📖 What does `List(viewModel.movies) { movie in ... }` mean?
+
+It iterates through the movie array. For each movie, the closure receives that movie and creates a row.
+
+Because `Movie` conforms to `Identifiable`, SwiftUI can identify the individual rows.
+
+The name `movie` is a local parameter. It exists inside the closure and refers to the **current element**, not the entire array.
+
+---
+
+## 7️⃣ What you should learn from the one-file version
+
+Before splitting the code, make sure you can explain:
+
+1. Why `Movie` is a struct.
+2. Why `Genre` is an enum.
+3. Why each movie has a `UUID`.
+4. What `MockDataStore.movies` provides.
+5. What `@Observable` does.
+6. Why the ViewModel finds a movie by ID.
+7. What `@State` owns.
+8. How `List` and `NavigationLink` work.
+9. How a row changes when `isWatched` changes.
+
+> This simplified version is not yet the complete tutorial app. In particular, it doesn't yet have the detail layout, search, add form, settings, all nine sample movies or the tutorial's full set of previews. Those come in the organised project below.
+
+---
+
+# Part 3 — Split the code into the tutorial's folders and files
+
+Now create the structure from your tutorial. In Xcode, you can right-click the project navigator, choose **New Group** or create folders in Finder and add them to the project. Make sure the Swift files belong to the app target.
+
+```text
+MovieGenreFilter/
+├── App/
+│   ├── MovieGenreFilterApp.swift
+│   └── UserPreferences.swift
+├── Models/
+│   ├── Movie.swift
+│   └── MockDataStore.swift
+├── ViewModels/
+│   ├── MovieListViewModel.swift
+│   └── AddMovieViewModel.swift
+└── Views/
+    ├── Screens/
+    │   ├── MovieListView.swift
+    │   ├── MovieDetailView.swift
+    │   ├── AddMovieView.swift
+    │   └── SettingsSheetView.swift
+    └── Components/
+        ├── MovieRowView.swift
+        └── SharedComponents.swift
+```
+
+---
+
+## 8️⃣ Why these folders exist
+
+- **Models** contains the data structures and domain concepts. `Movie.swift` defines what a movie is; `MockDataStore.swift` provides the sample movies.
+- **ViewModels** contains state and operations. The list ViewModel owns the list and its search logic. The form ViewModel owns draft form values and validation.
+- **Views/Screens** contains complete screens users can navigate to or present as sheets.
+- **Views/Components** contains smaller views used by screens. For example, `RatingView` can be used in a movie row and in the detail screen without duplicating its implementation.
+- **App** contains the entry point and shared app-level configuration.
+
+> The folders don't automatically make code work differently. They make the project easier to navigate, understand, maintain and extend.
+
+---
+
+# Part 4 — Part 1 code, file by file
+
+## 9️⃣ `Models/Movie.swift`
+
+This is the model from your supplied tutorial. Keep `Genre` as a **top-level enum** in the same file, rather than nesting it inside `Movie`.
+
+```swift
+import Foundation
+import SwiftUI
+
+// MARK: - Movie Model
+struct Movie: Identifiable {
+    let id: UUID
+    var title: String
+    var genre: Genre
+    var rating: Double
+    var year: Int
+    var synopsis: String
+    var duration: Int
+    var isWatched: Bool
+
+    init(
+        title: String,
+        genre: Genre,
+        rating: Double,
+        year: Int,
+        synopsis: String,
+        duration: Int,
+        isWatched: Bool = false
+    ) {
+        self.id = UUID()
+        self.title = title
+        self.genre = genre
+        self.rating = rating
+        self.year = year
+        self.synopsis = synopsis
+        self.duration = duration
+        self.isWatched = isWatched
+    }
+}
+
+// MARK: - Genre Enum
+enum Genre: String, CaseIterable {
+    case action = "Action"
+    case drama = "Drama"
+    case thriller = "Thriller"
+    case scifi = "Sci-Fi"
+    case comedy = "Comedy"
+
+    var icon: String {
+        switch self {
+        case .action: return "flame.fill"
+        case .drama: return "theatermasks.fill"
+        case .thriller: return "eye.trianglebadge.exclamationmark.fill"
+        case .scifi: return "sparkles"
+        case .comedy: return "face.smiling.fill"
+        }
+    }
+
+    var color: Color {
+        switch self {
+        case .action: return .red
+        case .drama: return .purple
+        case .thriller: return .orange
+        case .scifi: return .blue
+        case .comedy: return .yellow
+        }
+    }
+}
+```
+
+### 📖 Theory: why are Foundation and SwiftUI imported?
+
+`Foundation` provides common types and functionality, including `UUID`. `SwiftUI` provides UI types such as `Color`.
+
+The genre enum is technically a domain concept, but in this tutorial it also supplies icon names and colours for the interface. This is a deliberate tutorial design that keeps each genre's presentation mapping in one place.
+
+### 📖 Theory: why does Genre conform to CaseIterable?
+
+Later, the form uses:
+
+```swift
+Genre.allCases
+```
+
+That produces all five cases. The picker can generate its options from the enum, so adding a new genre to the enum also makes it available to the picker.
+
+### 📖 Why Movie has a custom initializer
+
+The initializer guarantees every new movie receives a `UUID`. It also sets `isWatched` to `false` by default, which is the natural starting status for a movie created through the Add Movie form.
+
+The `year` and `duration` names match your tutorial. Keep them consistent across all files.
+
+---
+
+## 🔟 `Models/MockDataStore.swift`
+
+Use all **nine** movies from your tutorial.
+
+```swift
+import Foundation
+
+// MARK: - Centralised Mock Data
+struct MockDataStore {
+    static let movies: [Movie] = [
+        Movie(
+            title: "Oppenheimer",
+            genre: .drama,
+            rating: 8.9,
+            year: 2023,
+            synopsis: "The story of J. Robert Oppenheimer's role in the development of the atomic bomb during WWII, and the political aftermath that followed.",
+            duration: 180,
+            isWatched: false
+        ),
+
+        Movie(
+            title: "Dune: Part Two",
+            genre: .scifi,
+            rating: 8.6,
+            year: 2024,
+            synopsis: "Paul Atreides unites with Chani and the Fremen while seeking revenge against the conspirators who destroyed his family.",
+            duration: 166,
+            isWatched: true
+        ),
+
+        Movie(
+            title: "The Dark Knight",
+            genre: .action,
+            rating: 9.0,
+            year: 2008,
+            synopsis: "Batman faces the Joker, a criminal mastermind who plunges Gotham City into anarchy and forces Batman to question everything he believes.",
+            duration: 152,
+            isWatched: true
+        ),
+
+        Movie(
+            title: "Parasite",
+            genre: .thriller,
+            rating: 8.5,
+            year: 2019,
+            synopsis: "A poor family schemes to become employed by a wealthy family by posing as unrelated, highly qualified individuals.",
+            duration: 132,
+            isWatched: false
+        ),
+
+        Movie(
+            title: "Interstellar",
+            genre: .scifi,
+            rating: 8.7,
+            year: 2014,
+            synopsis: "A team of explorers travel through a wormhole in space in an attempt to ensure humanity's survival as Earth faces catastrophe.",
+            duration: 169,
+            isWatched: false
+        ),
+
+        Movie(
+            title: "Mad Max: Fury Road",
+            genre: .action,
+            rating: 8.1,
+            year: 2015,
+            synopsis: "In a post-apocalyptic wasteland, a woman rebels against a tyrannical ruler in search of her homeland with the help of a group of female prisoners.",
+            duration: 120,
+            isWatched: true
+        ),
+
+        Movie(
+            title: "Knives Out",
+            genre: .thriller,
+            rating: 7.9,
+            year: 2019,
+            synopsis: "A detective investigates the death of a patriarch of an eccentric, combative family. A clever whodunit that keeps you guessing.",
+            duration: 130,
+            isWatched: false
+        ),
+
+        Movie(
+            title: "The Grand Budapest Hotel",
+            genre: .comedy,
+            rating: 8.1,
+            year: 2014,
+            synopsis: "A writer encounters the owner of an aging European hotel between the wars, who tells him of his years serving as a lobby boy.",
+            duration: 99,
+            isWatched: true
+        ),
+
+        Movie(
+            title: "Arrival",
+            genre: .scifi,
+            rating: 7.9,
+            year: 2016,
+            synopsis: "A linguist works with the military to communicate with alien lifeforms after twelve mysterious spacecraft appear around the world.",
+            duration: 116,
+            isWatched: false
+        )
+    ]
+}
+```
+
+### 📖 Theory: why put sample data in its own file?
+
+The mock data is not the movie model itself. The model describes the **shape** of a movie; the mock store provides **example instances**.
+
+Keeping the data separate means multiple screens and previews can reuse it without maintaining duplicate sample arrays.
+
+In Part 3, your tutorial says the storage mechanism will move to SwiftData, and the mock store will be reused by the database seeder.
+
+---
+
+## 1️⃣1️⃣ `ViewModels/MovieListViewModel.swift` — Part 1 version
+
+Start with the simpler Part 1 version. You'll replace it with the Part 2 version later.
+
+```swift
+import Foundation
+import Observation
+
+@Observable
+class MovieListViewModel {
+
+    var movies: [Movie] = MockDataStore.movies
+
+    func markWatched(_ movie: Movie) {
+        if let index = movies.firstIndex(
+            where: { $0.id == movie.id }
+        ) {
+            movies[index].isWatched = true
+        }
+    }
+}
+```
+
+### 📖 Theory: why does the ViewModel own `movies`?
+
+`MockDataStore` provides the **initial** values. `MovieListViewModel` owns the app's **current in-memory list**, including changes made by the user.
+
+That distinction matters. If the user marks a movie as watched, the ViewModel's array changes. The static sample array is not the active state container for the screen.
+
+### 📖 Theory: why use `@Observable` instead of `ObservableObject`?
+
+Your tutorial uses modern Observation:
+
+```swift
+import Observation
+
+@Observable
+class MovieListViewModel { ... }
+```
+
+With this approach, SwiftUI tracks observable properties that a view reads. You do not need to mark each property with `@Published`.
+
+In the screen, `@State` will own the ViewModel instance. Together, `@Observable` and `@State` give SwiftUI the state ownership and observation behaviour this tutorial needs.
+
+---
+
+## 1️⃣2️⃣ `Views/Components/SharedComponents.swift`
+
+This file holds three reusable UI components.
+
+```swift
+import SwiftUI
+
+// MARK: - Genre Badge
+struct GenreBadgeView: View {
+    let genre: Genre
+    let size: CGFloat
+    let iconSize: CGFloat
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: size * 0.25)
+                .fill(genre.color.opacity(0.15))
+                .frame(width: size, height: size)
+
+            Image(systemName: genre.icon)
+                .font(.system(size: iconSize))
+                .foregroundColor(genre.color)
+        }
+    }
+}
+
+// MARK: - Rating View
+struct RatingView: View {
+    let rating: Double
+    var showOutOfTen: Bool = false
+
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "star.fill")
+                .foregroundColor(.yellow)
+
+            Text(String(format: "%.1f", rating))
+                .fontWeight(.bold)
+
+            if showOutOfTen {
+                Text("/ 10")
+                    .foregroundColor(.secondary)
+                    .font(.subheadline)
+            }
+        }
+    }
+}
+
+// MARK: - Meta Info Tile
+struct MetaInfoTileView: View {
+    let icon: String
+    let label: String
+    let value: String
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .foregroundColor(.secondary)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(label)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                Text(value)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+            }
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+// MARK: - Previews
+#Preview("Genre Badge") {
+    GenreBadgeView(genre: .action, size: 64, iconSize: 28)
+}
+
+#Preview("Rating") {
+    RatingView(rating: 9.0, showOutOfTen: true)
+}
+
+#Preview("Meta Info") {
+    MetaInfoTileView(icon: "calendar", label: "Year", value: "2008")
+        .padding()
+}
+```
+
+### 📖 Theory: why are these separate views?
+
+All three components solve small presentation problems.
+
+- `GenreBadgeView` receives a genre and sizes, then draws a badge.
+- `RatingView` receives a rating and an optional display preference.
+- `MetaInfoTileView` receives an icon, label and value.
+
+They don't fetch or own movie-list data. They display values supplied by their parent.
+
+For example:
+
+```swift
+RatingView(rating: movie.rating, showOutOfTen: true)
+```
+
+The parent passes a rating into the reusable component. The component decides how to render it.
+
+This is **composition**: building larger interfaces from smaller views.
+
+### 📖 Theory: what does `CGFloat` mean?
+
+```swift
+let size: CGFloat
+```
+
+`CGFloat` is a floating-point type commonly used for graphics and layout measurements in Apple UI frameworks. It allows values such as `64` or `28.5`.
+
+### 📖 Theory: what is `ZStack`?
+
+`ZStack` overlays views on top of each other. In the genre badge, a rounded rectangle forms the background and the symbol appears above it.
+
+```swift
+RoundedRectangle(cornerRadius: size * 0.25)
+```
+
+The corner radius is calculated as a quarter of the supplied size. That means a larger badge automatically receives a larger corner radius.
+
+```swift
+.fill(genre.color.opacity(0.15))
+```
+
+This uses the genre's colour at 15% opacity to create a subtle background.
+
+### 📖 Theory: why `String(format: "%.1f", rating)`?
+
+This formats a decimal to one digit after the decimal point. A rating such as `9.0` appears as `9.0` instead of `9`.
+
+The format specifier `%.1f` means one decimal place. The underlying rating remains a `Double`; only its displayed representation is formatted.
+
+### 📖 Theory: default arguments
+
+```swift
+var showOutOfTen: Bool = false
+```
+
+If the caller omits `showOutOfTen`, the component defaults to `false`. The rating row can therefore use a compact display, while the detail screen can request the full `/ 10` label.
+
+---
+
+## 1️⃣3️⃣ `Views/Components/MovieRowView.swift`
+
+```swift
+import SwiftUI
+
+struct MovieRowView: View {
+    let movie: Movie
+
+    var body: some View {
+        HStack(spacing: 12) {
+            GenreBadgeView(
+                genre: movie.genre,
+                size: 44,
+                iconSize: 18
+            )
+
+            movieInfo
+
+            Spacer()
+
+            trailingInfo
+        }
+        .padding(.vertical, 4)
+    }
+
+    private var movieInfo: some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(movie.title)
+                .font(.headline)
+                .foregroundColor(
+                    movie.isWatched ? .secondary : .primary
+                )
+
+            HStack(spacing: 6) {
+                Text(movie.genre.rawValue)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                Text("•")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+
+                Text(String(movie.year))
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+
+    private var trailingInfo: some View {
+        VStack(alignment: .trailing, spacing: 4) {
+            RatingView(rating: movie.rating)
+                .font(.caption2)
+
+            if movie.isWatched {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                    .font(.caption)
+            }
+        }
+    }
+}
+
+// MARK: - Previews
+#Preview("Unwatched Movie") {
+    MovieRowView(movie: MockDataStore.movies[0])
+        .padding()
+}
+
+#Preview("Watched Movie") {
+    MovieRowView(movie: MockDataStore.movies[1])
+        .padding()
+}
+```
+
+### 📖 Theory: what is a computed property returning `some View`?
+
+```swift
+private var movieInfo: some View { ... }
+```
+
+This is a **computed property**, just like `filteredMovies` was, but its result is a view instead of an array.
+
+The `private` keyword means the extracted property is an implementation detail of `MovieRowView`.
+
+Extracting `movieInfo` and `trailingInfo` makes the main `body` easier to read. You can understand the layout at a glance, then inspect the smaller properties to see the details.
+
+### 📖 Theory: what is a SwiftUI preview?
+
+```swift
+#Preview("Watched Movie") {
+    MovieRowView(movie: MockDataStore.movies[1])
+        .padding()
+}
+```
+
+The preview constructs the view with a known sample movie. It lets you inspect the component without launching the entire app.
+
+`MockDataStore.movies[1]` accesses the **second** item in the array because Swift arrays use **zero-based indexing**: index `0` is the first item, index `1` is the second.
+
+> Previews are development tools. They are not extra screens that users navigate to at runtime.
+
+---
+
+## 1️⃣4️⃣ `Views/Screens/MovieDetailView.swift`
+
+This is the full detail screen and its four extracted components.
+
+```swift
+import SwiftUI
+
+// MARK: - Detail Container
+struct MovieDetailView: View {
+    let movie: Movie
+    var onMarkWatched: ((Movie) -> Void)?
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 24) {
+                MovieDetailHeaderView(movie: movie)
+                MovieDetailMetaView(movie: movie)
+                MovieDetailSynopsisView(movie: movie)
+                MovieDetailActionView(
+                    movie: movie,
+                    onMarkWatched: onMarkWatched
+                )
+            }
+            .padding()
+        }
+        .navigationTitle(movie.title)
+        .navigationBarTitleDisplayMode(.large)
+    }
+}
+
+// MARK: - Header
+struct MovieDetailHeaderView: View {
+    let movie: Movie
+
+    var body: some View {
+        HStack(spacing: 12) {
+            GenreBadgeView(
+                genre: movie.genre,
+                size: 64,
+                iconSize: 28
+            )
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(movie.genre.rawValue.uppercased())
+                    .font(.caption)
+                    .fontWeight(.semibold)
+                    .foregroundColor(movie.genre.color)
+                    .tracking(1.2)
+
+                RatingView(
+                    rating: movie.rating,
+                    showOutOfTen: true
+                )
+                .font(.title3)
+            }
+
+            Spacer()
+
+            if movie.isWatched {
+                VStack(spacing: 2) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(.green)
+                        .font(.title2)
+
+                    Text("Watched")
+                        .font(.caption2)
+                        .foregroundColor(.green)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Meta strip
+struct MovieDetailMetaView: View {
+    let movie: Movie
+
+    var formattedDuration: String {
+        let hours = movie.duration / 60
+        let minutes = movie.duration % 60
+
+        return hours > 0
+            ? "\(hours)h \(minutes)m"
+            : "\(minutes)m"
+    }
+
+    var body: some View {
+        HStack(spacing: 0) {
+            MetaInfoTileView(
+                icon: "calendar",
+                label: "Year",
+                value: String(movie.year)
+            )
+
+            Divider()
+                .frame(height: 36)
+
+            MetaInfoTileView(
+                icon: "clock",
+                label: "Duration",
+                value: formattedDuration
+            )
+        }
+        .padding()
+        .background(Color(.systemGray6))
+        .cornerRadius(12)
+    }
+}
+
+// MARK: - Synopsis
+struct MovieDetailSynopsisView: View {
+    let movie: Movie
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Synopsis")
+                .font(.headline)
+
+            Text(movie.synopsis)
+                .font(.body)
+                .foregroundColor(.secondary)
+                .lineSpacing(4)
+        }
+    }
+}
+
+// MARK: - Action
+struct MovieDetailActionView: View {
+    let movie: Movie
+    var onMarkWatched: ((Movie) -> Void)?
+
+    var body: some View {
+        if !movie.isWatched {
+            Button {
+                onMarkWatched?(movie)
+            } label: {
+                Label(
+                    "Mark as Watched",
+                    systemImage: "checkmark.circle"
+                )
+                .frame(maxWidth: .infinity)
+                .padding()
+                .background(Color.accentColor)
+                .foregroundColor(.white)
+                .cornerRadius(12)
+                .font(.headline)
+            }
+        }
+    }
+}
+
+// MARK: - Previews
+#Preview("Complete Detail") {
+    MovieDetailView(
+        movie: MockDataStore.movies[0],
+        onMarkWatched: { movie in
+            print("Marked as watched: \(movie.title)")
+        }
+    )
+}
+
+#Preview("Detail Header") {
+    MovieDetailHeaderView(movie: MockDataStore.movies[2])
+        .padding()
+}
+
+#Preview("Detail Metadata") {
+    MovieDetailMetaView(movie: MockDataStore.movies[2])
+        .padding()
+}
+
+#Preview("Synopsis") {
+    MovieDetailSynopsisView(movie: MockDataStore.movies[2])
+        .padding()
+}
+
+#Preview("Action - Unwatched") {
+    MovieDetailActionView(
+        movie: MockDataStore.movies[0],
+        onMarkWatched: { movie in
+            print("Marked as watched: \(movie.title)")
+        }
+    )
+    .padding()
+}
+
+#Preview("Action - Already Watched") {
+    MovieDetailActionView(movie: MockDataStore.movies[1])
+        .padding()
+}
+```
+
+### 📖 Theory: why break the detail screen into separate views?
+
+`MovieDetailView` acts as the **container**. It arranges the header, metadata, synopsis and action components vertically.
+
+Each smaller view has one clear presentation responsibility:
+
+- `MovieDetailHeaderView` displays the genre, rating and watched badge.
+- `MovieDetailMetaView` displays the year and duration.
+- `MovieDetailSynopsisView` displays the synopsis.
+- `MovieDetailActionView` conditionally displays the watched button.
+
+This makes the UI easier to understand, maintain and preview.
+
+### 📖 Understand duration formatting
+
+```swift
+let hours = movie.duration / 60
+let minutes = movie.duration % 60
+```
+
+For an integer number of minutes:
+
+- `/` with integers performs **integer division**.
+- `%` returns the **remainder**.
+
+For a movie lasting 152 minutes:
+
+- `152 / 60` gives 2 whole hours.
+- `152 % 60` gives 32 remaining minutes.
+
+The computed property then returns `"2h 32m"`.
+
+```swift
+return hours > 0
+    ? "\(hours)h \(minutes)m"
+    : "\(minutes)m"
+```
+
+This uses the ternary operator. A duration under one hour displays only minutes; otherwise it displays hours and minutes.
+
+### 📖 Theory: what is a closure?
+
+The detail screen declares:
+
+```swift
+var onMarkWatched: ((Movie) -> Void)?
+```
+
+Read the type from the inside out:
+
+- `(Movie) -> Void` is a **function type**: it accepts a `Movie` and returns no meaningful value.
+- The outer parentheses group that function type.
+- The trailing `?` makes the closure **optional**.
+
+The detail screen can receive a function from its parent. It doesn't need to know the implementation of that function.
+
+When the button is pressed:
+
+```swift
+onMarkWatched?(movie)
+```
+
+The `?` here is **optional chaining**. It calls the closure only if a closure was provided. If the optional is `nil`, nothing happens.
+
+The parent supplies a closure that calls the ViewModel. This preserves the tutorial's rule that the **ViewModel, not the detail view, changes the movie list**.
+
+### ⚠️ An important SwiftUI data-flow detail
+
+Your tutorial passes a `Movie` struct into `MovieDetailView`. Structs are **value types**, so the detail view receives a value copy. The ViewModel then changes the movie in its own array.
+
+In this particular tutorial flow, returning to the list causes the list to render from the updated ViewModel array. However, the detail view's own `movie` value is **not automatically a live reference** to that array element. If you want the detail screen itself to immediately reflect the updated status while it remains open, the data flow needs to be expanded — for example, by passing a binding or resolving the latest movie by ID.
+
+> For learning the supplied tutorial, keep its callback pattern. Just understand this distinction between **passing a value** and **sharing live state**.
+
+---
+
+## 1️⃣5️⃣ `Views/Screens/MovieListView.swift` — Part 1
+
+```swift
+import SwiftUI
+
+struct MovieListView: View {
+
+    @State private var viewModel = MovieListViewModel()
+
+    var body: some View {
+        NavigationStack {
+            List(viewModel.movies) { movie in
+                NavigationLink(
+                    destination: MovieDetailView(
+                        movie: movie,
+                        onMarkWatched: {
+                            viewModel.markWatched($0)
+                        }
+                    )
+                ) {
+                    MovieRowView(movie: movie)
+                }
+            }
+            .listStyle(.plain)
+            .navigationTitle("My Movie List")
+        }
+    }
+}
+
+#Preview("Movie List") {
+    MovieListView()
+}
+```
+
+### 📖 Theory: how does the closure connect the detail view to the ViewModel?
+
+This is the most important line:
+
+```swift
+onMarkWatched: {
+    viewModel.markWatched($0)
+}
+```
+
+The parent constructs the detail view and passes it a closure. When the detail screen calls that closure, the parent calls `markWatched`.
+
+The `$0` is shorthand for the closure's first argument, which is a `Movie`.
+
+The equivalent explicit version is:
+
+```swift
+onMarkWatched: { movie in
+    viewModel.markWatched(movie)
+}
+```
+
+Both mean the same thing. The explicit version is easier to understand when you're still learning closures, so use it while practising if needed.
+
+### 📖 Why does the ViewModel method take a movie?
+
+```swift
+func markWatched(_ movie: Movie)
+```
+
+The underscore means the caller doesn't need to write the external argument label. You can call it like this:
+
+```swift
+viewModel.markWatched(movie)
+```
+
+rather than:
+
+```swift
+viewModel.markWatched(movie: movie)
+```
+
+Both are valid Swift API styles; the tutorial uses the former.
+
+---
+
+## 1️⃣6️⃣ `App/MovieGenreFilterApp.swift` — Part 1
+
+```swift
+import SwiftUI
+
+@main
+struct MovieGenreFilterApp: App {
+    var body: some Scene {
+        WindowGroup {
+            MovieListView()
+        }
+    }
+}
+```
+
+### 📖 Theory: how does the app start?
+
+`@main` marks the entry point for the application. The `App` protocol defines the structure of the app, and `WindowGroup` provides the scene in which the app's main interface appears.
+
+`MovieListView()` is the first screen displayed.
+
+> ✅ At this point, the app is complete for Part 1. Run it and confirm that it shows **nine movies** and opens their detail screens.
+
+---
+
+# Part 5 — Part 2: Search, Add Movie and Settings
+
+Part 2 builds on the exact files above. Do not create duplicate model or component files; update the existing ones only where the tutorial says to.
+
+## 1️⃣7️⃣ Update `ViewModels/MovieListViewModel.swift`
+
+Replace the Part 1 version with this Part 2 version.
+
+```swift
+import Foundation
+import Observation
+
+@Observable
+class MovieListViewModel {
+
+    var movies: [Movie] = MockDataStore.movies
+
+    var searchText: String = ""
+
+    var filteredMovies: [Movie] {
+        filter(movies)
+    }
+
+    func filter(_ movies: [Movie]) -> [Movie] {
+        guard !searchText.isEmpty else {
+            return movies
+        }
+
+        return movies.filter {
+            $0.title.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
+    func markWatched(_ movie: Movie) {
+        if let i = movies.firstIndex(where: { $0.id == movie.id }) {
+            movies[i].isWatched = true
+        }
+    }
+
+    func addMovie(_ movie: Movie) {
+        movies.append(movie)
+    }
+
+    func deleteMovies(at offsets: IndexSet) {
+        let filtered = filteredMovies
+
+        for i in offsets {
+            movies.removeAll { $0.id == filtered[i].id }
+        }
+    }
+}
+```
+
+### 📖 Theory: why is `filter` in the ViewModel?
+
+Filtering is a **data operation**, not a drawing operation.
+
+The search field should only update `searchText`. The ViewModel decides which movies match. This keeps the View simple and means the same filtering logic could be reused by another screen or tested independently.
+
+### 📖 Understand `localizedCaseInsensitiveContains`
+
+```swift
+$0.title.localizedCaseInsensitiveContains(searchText)
+```
+
+The method returns a Boolean. It checks whether the title contains the search string without treating case differences as meaningful. This is more suitable for a user-facing search field than a strict, case-sensitive comparison.
+
+### 📖 Understand deletion carefully
+
+```swift
+let filtered = filteredMovies
+
+for i in offsets {
+    movies.removeAll { $0.id == filtered[i].id }
+}
+```
+
+`IndexSet` contains the indices the user requested to delete from the **displayed** list.
+
+The code first saves the current filtered list. For every selected visible index, it finds the corresponding movie's ID and removes that movie from the original `movies` array.
+
+This is essential because a visible row's index in search results may not match its index in the original list.
+
+> **Example:** searching for "Arrival" could produce one result at visible index `0`, even though Arrival is the ninth movie in the original array. Deleting the visible index directly from the original array could remove the wrong movie. Matching by ID avoids that.
+
+The tutorial assumes the offsets refer to valid indices in the `filteredMovies` snapshot. This is the normal SwiftUI swipe-to-delete flow.
+
+---
+
+## 1️⃣8️⃣ Add `ViewModels/AddMovieViewModel.swift`
+
+```swift
+import Foundation
+import Observation
+
+@Observable
+class AddMovieViewModel {
+
+    var title = ""
+    var selectedGenre = Genre.action
+    var rating = 5.0
+    var year = Calendar.current.component(.year, from: Date())
+    var synopsis = ""
+    var duration = 120
+
+    var isFormValid: Bool {
+        !title.trimmingCharacters(in: .whitespaces).isEmpty &&
+        !synopsis.trimmingCharacters(in: .whitespaces).isEmpty &&
+        duration > 0
+    }
+
+    func buildMovie() -> Movie {
+        Movie(
+            title: title,
+            genre: selectedGenre,
+            rating: rating,
+            year: year,
+            synopsis: synopsis,
+            duration: duration
+        )
+    }
+}
+```
+
+### 📖 Theory: form state vs saved data
+
+The form's values are **temporary state**. Changing `title` or `rating` does not yet add a movie to the main list.
+
+Only when the user saves does `buildMovie()` construct a `Movie`, which the parent receives through a callback.
+
+This separation prevents incomplete or cancelled forms from changing the movie list.
+
+### 📖 Theory: why is validation a computed property?
+
+```swift
+var isFormValid: Bool {
+    !title.trimmingCharacters(in: .whitespaces).isEmpty &&
+    !synopsis.trimmingCharacters(in: .whitespaces).isEmpty &&
+    duration > 0
+}
+```
+
+It recalculates from the current form values. When the user types, the validation result changes automatically because the ViewModel is observable.
+
+This also creates a **single source of truth** for the Save button. You don't need to duplicate validation rules in the button's action.
+
+---
+
+## 1️⃣9️⃣ Add `App/UserPreferences.swift`
+
+```swift
+import SwiftUI
+import Observation
+
+@Observable
+final class UserPreferences {
+
+    var colorSchemePreference: ColorSchemePreference = .system
+    var displayName: String = "My"
+
+    var preferredColorScheme: ColorScheme? {
+        switch colorSchemePreference {
+        case .light:  return .light
+        case .dark:   return .dark
+        case .system: return nil
+        }
+    }
+
+    enum ColorSchemePreference: String, CaseIterable {
+        case light = "Light"
+        case dark = "Dark"
+        case system = "System"
+
+        var icon: String {
+            switch self {
+            case .light: return "sun.max"
+            case .dark: return "moon.stars"
+            case .system: return "circle.lefthalf.filled"
+            }
+        }
+    }
+}
+```
+
+### 📖 Theory: nested enums
+
+Unlike `Genre`, the `ColorSchemePreference` enum is **nested** inside `UserPreferences`.
+
+That means the full type name is:
+
+```swift
+UserPreferences.ColorSchemePreference
+```
+
+The tutorial nests it because the available appearance options are specifically part of the preferences feature. `Genre`, by contrast, is a movie-domain type used throughout the app, so it remains top-level.
+
+### 📖 Theory: shared app state
+
+`UserPreferences` stores two values used by multiple screens:
+
+- `colorSchemePreference` determines the appearance.
+- `displayName` determines the navigation title.
+
+Keeping them in one observable object allows all interested views to read the same state instead of keeping separate, inconsistent copies.
+
+> Remember: this is still **in-memory** state, not persistent storage.
+
+---
+
+## 2️⃣0️⃣ Update `App/MovieGenreFilterApp.swift`
+
+```swift
+import SwiftUI
+
+@main
+struct MovieGenreFilterApp: App {
+
+    @State private var preferences = UserPreferences()
+
+    var body: some Scene {
+        WindowGroup {
+            MovieListView()
+                .environment(preferences)
+                .preferredColorScheme(preferences.preferredColorScheme)
+        }
+    }
+}
+```
+
+### 📖 Theory: how does `.environment(preferences)` work?
+
+The app creates **one** `UserPreferences` instance and provides it to the view hierarchy.
+
+Later, `MovieListView` and `SettingsSheetView` can retrieve that instance with:
+
+```swift
+@Environment(UserPreferences.self) private var preferences
+```
+
+They don't create a second object. They retrieve the shared object the app injected.
+
+This is **dependency injection**: a view receives access to a dependency supplied from outside it, rather than constructing its own separate instance.
+
+> **Why is that useful?** If the settings screen created its own preferences object, changing its theme wouldn't necessarily change the object used by the app entry point. Injecting one shared instance keeps the app consistent.
+
+### 📖 Theory: why `@State` in the App?
+
+```swift
+@State private var preferences = UserPreferences()
+```
+
+The app owns the shared object's lifetime. `@State` keeps the reference stable across SwiftUI updates. `@Observable` makes changes to the object's properties trackable.
+
+Those two features work together, but they have different responsibilities.
+
+---
+
+## 2️⃣1️⃣ Add `Views/Screens/AddMovieView.swift`
+
+Use the following tutorial version.
+
+```swift
+import SwiftUI
+
+struct AddMovieView: View {
+
+    var onSave: (Movie) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var viewModel = AddMovieViewModel()
+
+    var body: some View {
+        @Bindable var vm = viewModel
+
+        NavigationStack {
+            Form {
+                Section("Basic Information") {
+                    TextField("Movie Title", text: $vm.title)
+                        .textInputAutocapitalization(.words)
+
+                    Picker("Genre", selection: $vm.selectedGenre) {
+                        ForEach(Genre.allCases, id: \.self) { genre in
+                            Label(
+                                genre.rawValue,
+                                systemImage: genre.icon
+                            )
+                            .tag(genre)
+                        }
+                    }
+                }
+
+                Section("Details") {
+                    Stepper(
+                        "Year: \(viewModel.year)",
+                        value: $vm.year,
+                        in: 1900...2100
+                    )
+
+                    VStack(alignment: .leading) {
+                        HStack {
+                            Text("Rating")
+                            Spacer()
+                            RatingView(rating: viewModel.rating)
+                        }
+
+                        Slider(
+                            value: $vm.rating,
+                            in: 0...10,
+                            step: 0.1
+                        )
+                        .tint(.yellow)
+                    }
+
+                    Stepper(
+                        "Duration: \(viewModel.duration) min",
+                        value: $vm.duration,
+                        in: 1...500
+                    )
+                }
+
+                Section("Synopsis") {
+                    TextEditor(text: $vm.synopsis)
+                        .frame(minHeight: 100)
+                }
+            }
+            .navigationTitle("New Movie")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .foregroundColor(.red)
+                }
+
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        onSave(viewModel.buildMovie())
+                        dismiss()
+                    }
+                    .fontWeight(.bold)
+                    .disabled(!viewModel.isFormValid)
+                }
+            }
+        }
+    }
+}
+
+#Preview("Add Movie Form") {
+    AddMovieView { movie in
+        print("Preview saved: \(movie.title)")
+    }
+}
+```
+
+### 📖 Theory: how does `@Bindable` enable `$vm.title`?
+
+The ViewModel is stored with `@State`, but the form controls need **bindings** to its properties.
+
+```swift
+@Bindable var vm = viewModel
+```
+
+This local declaration exposes binding access to the existing observable object. It doesn't create a new object.
+
+Then:
+
+```swift
+TextField("Movie Title", text: $vm.title)
+```
+
+uses `$vm.title` as a two-way connection between the text field and the ViewModel property.
+
+Without the binding, the text field wouldn't have the required mechanism to write changes back to the model.
+
+### 📖 Theory: Picker and enum selection
+
+```swift
+Picker("Genre", selection: $vm.selectedGenre) {
+    ForEach(Genre.allCases, id: \.self) { genre in
+        Label(genre.rawValue, systemImage: genre.icon)
+            .tag(genre)
+    }
+}
+```
+
+The selection is a binding to the selected enum case.
+
+`ForEach` creates an option for every genre. `.tag(genre)` associates each displayed option with its actual `Genre` value, so selecting the option updates `selectedGenre`.
+
+The `id: \.self` syntax means each enum value acts as its own identity.
+
+### 📖 Theory: what is `Form`?
+
+`Form` is a SwiftUI container designed for data-entry interfaces. It groups controls into sections and applies a platform-appropriate form layout.
+
+The controls in this form have different roles:
+
+- `TextField` accepts a single line of text.
+- `Picker` selects a genre.
+- `Stepper` increments or decrements a number.
+- `Slider` selects a value within a range.
+- `TextEditor` accepts multiline text.
+- `Section` groups related controls.
+
+### 📖 Theory: why use a closure for `onSave`?
+
+```swift
+var onSave: (Movie) -> Void
+```
+
+This closure accepts a `Movie` and returns `Void`. The parent supplies its implementation when presenting the form.
+
+```swift
+onSave(viewModel.buildMovie())
+```
+
+The form creates the movie and reports it to the parent. It does not need a direct reference to `MovieListViewModel`, so the two ViewModels remain separate.
+
+### 📖 Theory: why does Cancel not save anything?
+
+```swift
+Button("Cancel") {
+    dismiss()
+}
+```
+
+The Cancel button only dismisses the form. It never calls `onSave`.
+
+The Save button builds a movie, sends it to the parent and dismisses. That separation is what makes cancelling a form safe.
+
+---
+
+## 2️⃣2️⃣ Add `Views/Screens/SettingsSheetView.swift`
+
+```swift
+import SwiftUI
+
+struct SettingsSheetView: View {
+
+    @Environment(UserPreferences.self) private var preferences
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var draftName = ""
+
+    var body: some View {
+        @Bindable var prefs = preferences
+
+        NavigationStack {
+            Form {
+                Section("Profile") {
+                    TextField("Display name", text: $draftName)
+                }
+
+                Section("Appearance") {
+                    Picker(
+                        "Theme",
+                        selection: $prefs.colorSchemePreference
+                    ) {
+                        ForEach(
+                            UserPreferences.ColorSchemePreference.allCases,
+                            id: \.self
+                        ) { mode in
+                            Label(
+                                mode.rawValue,
+                                systemImage: mode.icon
+                            )
+                            .tag(mode)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                }
+            }
+            .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                draftName = preferences.displayName
+            }
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Save") {
+                        preferences.displayName = draftName
+                        dismiss()
+                    }
+                    .fontWeight(.semibold)
+                }
+            }
+        }
+    }
+}
+
+#Preview("Settings") {
+    SettingsSheetView()
+        .environment(UserPreferences())
+}
+```
+
+### 📖 Theory: draft state vs shared state
+
+The display name uses a local variable:
+
+```swift
+@State private var draftName = ""
+```
+
+The `.onAppear` modifier copies the currently saved name into the draft when the settings screen appears.
+
+```swift
+.onAppear {
+    draftName = preferences.displayName
+}
+```
+
+This is a **draft-then-commit** pattern. While the user types, only the draft changes. The shared preference changes when Save is pressed:
+
+```swift
+preferences.displayName = draftName
+```
+
+If the user cancels, the draft is discarded with the dismissed view, and the shared display name remains unchanged.
+
+The appearance picker works differently because it binds **directly** to the shared preference:
+
+```swift
+selection: $prefs.colorSchemePreference
+```
+
+So changing Light, Dark or System applies immediately. In the supplied tutorial, Cancel does **not** undo an appearance change. This is intentional.
+
+### 📖 Theory: why does the preview inject preferences?
+
+```swift
+SettingsSheetView()
+    .environment(UserPreferences())
+```
+
+The view declares that it requires a `UserPreferences` object in its environment. A preview isn't necessarily launched inside the real app's environment, so the preview must supply a test instance.
+
+> **General rule:** if a view requires an environment dependency, provide that dependency in its preview too.
+
+---
+
+## 2️⃣3️⃣ Update `Views/Screens/MovieListView.swift`
+
+This is the final Part 2 list screen from your tutorial.
+
+```swift
+import SwiftUI
+
+struct MovieListView: View {
+
+    @Environment(UserPreferences.self) private var preferences
+
+    @State private var viewModel = MovieListViewModel()
+    @State private var showAddMovie = false
+    @State private var showSettings = false
+
+    private var navigationTitle: String {
+        preferences.displayName.isEmpty
+            ? "Movie List"
+            : "\(preferences.displayName)'s Movies"
+    }
+
+    var body: some View {
+        @Bindable var vm = viewModel
+
+        NavigationStack {
+            List {
+                ForEach(viewModel.filteredMovies) { movie in
+                    NavigationLink(
+                        destination: MovieDetailView(
+                            movie: movie,
+                            onMarkWatched: {
+                                viewModel.markWatched($0)
+                            }
+                        )
+                    ) {
+                        MovieRowView(movie: movie)
+                    }
+                }
+                .onDelete {
+                    viewModel.deleteMovies(at: $0)
+                }
+            }
+            .listStyle(.plain)
+            .searchable(
+                text: $vm.searchText,
+                prompt: "Search movies…"
+            )
+            .animation(
+                .default,
+                value: viewModel.filteredMovies.map { $0.id }
+            )
+            .navigationTitle(navigationTitle)
+            .toolbar {
+                toolbarContent
+            }
+            .sheet(isPresented: $showAddMovie) {
+                AddMovieView {
+                    viewModel.addMovie($0)
+                }
+            }
+            .sheet(isPresented: $showSettings) {
+                SettingsSheetView()
+            }
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItem(placement: .navigationBarTrailing) {
+            HStack(spacing: 16) {
+                Button {
+                    showAddMovie = true
+                } label: {
+                    Image(systemName: "plus")
+                }
+
+                Button {
+                    showSettings = true
+                } label: {
+                    Image(systemName: "gearshape")
+                }
+            }
+        }
+    }
+}
+
+#Preview("Movie List — Part 2") {
+    MovieListView()
+        .environment(UserPreferences())
+}
+```
+
+### 📖 Theory: how the search binding works
+
+```swift
+.searchable(
+    text: $vm.searchText,
+    prompt: "Search movies…"
+)
+```
+
+The search field needs a binding to the `searchText` property.
+
+When the user types, the binding updates the ViewModel. Since `filteredMovies` is computed from `searchText`, the array returned to `ForEach` changes and the visible list updates.
+
+The View uses:
+
+```swift
+ForEach(viewModel.filteredMovies) { movie in
+```
+
+rather than `viewModel.movies`, so it renders only the results returned by the filtering logic.
+
+### 📖 Theory: what is `ForEach`?
+
+`ForEach` generates a view for each element in a collection. Because each `Movie` conforms to `Identifiable`, SwiftUI knows which element corresponds to each row.
+
+`List` provides the scrollable list container, while `ForEach` generates the rows. This combination also lets the tutorial attach swipe-to-delete behaviour to the generated rows.
+
+### 📖 Theory: what does `.onDelete` do?
+
+```swift
+.onDelete {
+    viewModel.deleteMovies(at: $0)
+}
+```
+
+SwiftUI supplies an `IndexSet` representing the rows selected for deletion. The closure passes those offsets to the ViewModel's deletion method.
+
+The View doesn't directly remove anything from the array. It communicates the user's intent; the ViewModel performs the operation.
+
+### 📖 Theory: what does `.animation` do?
+
+```swift
+.animation(
+    .default,
+    value: viewModel.filteredMovies.map { $0.id }
+)
+```
+
+The `map` closure transforms the filtered movie array into an array of IDs. The animation modifier uses that value to detect changes in the displayed items and apply a default animation.
+
+It doesn't perform the filtering. It only affects how changes are **presented**.
+
+### 📖 Theory: why use `@ToolbarContentBuilder`?
+
+```swift
+@ToolbarContentBuilder
+private var toolbarContent: some ToolbarContent
+```
+
+The toolbar is a special kind of SwiftUI content. `@ToolbarContentBuilder` lets the computed property construct toolbar items and then be used by `.toolbar`.
+
+The plus button toggles `showAddMovie`, and the settings button toggles `showSettings`. These are view-owned presentation states, so `@State` is appropriate.
+
+### 📖 Theory: how do the sheets communicate with the parent?
+
+```swift
+.sheet(isPresented: $showAddMovie) {
+    AddMovieView {
+        viewModel.addMovie($0)
+    }
+}
+```
+
+The parent presents the sheet and supplies a callback. The callback invokes `addMovie` on the parent ViewModel.
+
+The sheet doesn't know where the movie will be stored. It only knows it must call `onSave` with a `Movie`.
+
+The settings sheet doesn't need that callback because it accesses shared `UserPreferences` from the environment.
+
+### 📖 Theory: why is the navigation title computed?
+
+The title depends on the display name. A computed property keeps that logic out of the main view layout:
+
+```swift
+private var navigationTitle: String {
+    preferences.displayName.isEmpty
+        ? "Movie List"
+        : "\(preferences.displayName)'s Movies"
+}
+```
+
+If the name is empty, the app displays "Movie List". Otherwise, it includes the name.
+
+---
+
+## 2️⃣4️⃣ Final architecture — how the files work together
+
+| Group | Files | Role |
+|---|---|---|
+| **App** | `MovieGenreFilterApp.swift` | Creates the shared preferences object and starts `MovieListView`. |
+| **Models** | `Movie.swift` · `MockDataStore.swift` | Defines movie data and provides initial sample movies. |
+| **ViewModels** | `MovieListViewModel.swift` · `AddMovieViewModel.swift` | Owns list state, filtering, deletion, form values and validation. |
+| **Views/Screens** | `MovieListView.swift` · `MovieDetailView.swift` · `AddMovieView.swift` · `SettingsSheetView.swift` | Builds screens, presents sheets and sends user actions to the appropriate state owner. |
+| **Views/Components** | `MovieRowView.swift` · `SharedComponents.swift` | Provides reusable rows, genre badges, ratings and metadata tiles. |
+
+### The main flow
+
+- **Launch:** App → `MovieListView` → `MovieListViewModel` → `MockDataStore`.
+- **Open details:** `MovieListView` → `MovieDetailView`.
+- **Mark watched:** Detail button → callback → `markWatched` in the list ViewModel.
+- **Search:** Search field → binding → `searchText` → `filteredMovies`.
+- **Add:** Add sheet → form ViewModel → `buildMovie()` → callback → `addMovie`.
+- **Delete:** List's `.onDelete` → `deleteMovies(at:)`.
+- **Settings:** App injects preferences → settings reads the same object → appearance updates.
+
+---
+
+# Part 6 — The theory you should know across the entire codebase
+
+This section connects the concepts that appear in multiple files. It is particularly useful for understanding unfamiliar SwiftUI code in a practical or lab assessment.
+
+## 2️⃣5️⃣ The five most important property-wrapper patterns
+
+### 1. `@State` — ownership
+
+```swift
+@State private var viewModel = MovieListViewModel()
+```
+
+The view **owns** the stateful reference. SwiftUI preserves that state across ordinary redraws of the view.
+
+### 2. `@Observable` — change tracking
+
+```swift
+@Observable
+class MovieListViewModel { ... }
+```
+
+Makes the object's properties observable, so SwiftUI can react to relevant changes.
+
+### 3. `@Bindable` — two-way bindings
+
+```swift
+@Bindable var vm = viewModel
+TextField("Movie Title", text: $vm.title)
+```
+
+Provides binding access to the properties of an observable object.
+
+### 4. `@Environment` — shared dependencies
+
+```swift
+@Environment(UserPreferences.self) private var preferences
+```
+
+Retrieves a shared object supplied through the environment.
+
+### 5. `@Environment(\.dismiss)` — presentation control
+
+```swift
+@Environment(\.dismiss) private var dismiss
+```
+
+Retrieves SwiftUI's dismissal action, used to close a sheet or dismiss the current presentation.
+
+> ⚠️ A common beginner mistake is treating all five as interchangeable. They are not:
+>
+> - `@State` manages view-owned state.
+> - `@Observable` enables change tracking.
+> - `@Bindable` enables two-way property bindings.
+> - `@Environment` retrieves dependencies from the environment.
+> - `dismiss` is an action provided by the environment.
+
+---
+
+## 2️⃣6️⃣ Operators and syntax that look complicated
+
+| Syntax | Meaning | Example in your app |
+|---|---|---|
+| `?` | Optional type or optional chaining, depending on context | `onMarkWatched?` |
+| `!` | Boolean NOT or forced unwrap, depending on context | `!isFormValid` |
+| `$` | Binding projection in SwiftUI | `$vm.searchText` |
+| `{ ... }` | Closure body or computed-property body, depending on context | `filter { ... }` |
+| `$0` | First closure argument | `viewModel.addMovie($0)` |
+| `->` | Function return type | `(Movie) -> Void` |
+| `:` | Type annotation, argument label, or dictionary separator depending on context | `var title: String` |
+| `&&` | Logical AND | Form validation |
+| `==` | Equality comparison | Matching movie IDs |
+| `...` | Closed range, including both endpoints | `1...500` |
+
+### One example that combines several concepts
+
+```swift
+movies.firstIndex(where: { $0.id == movie.id })
+```
+
+Read it in plain English:
+
+> Search the movies array and return the first index where the current element's ID matches the supplied movie's ID.
+
+That one expression uses an array method, a closure, shorthand argument syntax, property access and equality comparison.
+
+Don't try to memorise it as a mysterious block. Learn what each piece contributes.
+
+---
+
+## 2️⃣7️⃣ What is the difference between a value and a binding?
+
+This is one of the most important concepts in SwiftUI.
+
+```swift
+Text(movie.title)
+```
+
+The view receives a **value** to display.
+
+```swift
+TextField("Title", text: $vm.title)
+```
+
+The text field receives a **binding**, allowing it to both display and update the underlying value.
+
+A binding is a **connection to state**, not simply the current string copied into another variable.
+
+In your app:
+
+- `MovieRowView` displays a movie passed to it.
+- `AddMovieView` binds its controls to the form ViewModel.
+- `MovieListView` binds the search bar to `searchText`.
+- `SettingsSheetView` binds the appearance picker to shared preferences.
+
+---
+
+## 2️⃣8️⃣ Why use callbacks instead of letting every view change everything?
+
+The tutorial deliberately separates the responsibilities.
+
+For example:
+
+```swift
+var onSave: (Movie) -> Void
+```
+
+The form doesn't need to know how the parent stores the movie. It sends a completed movie back through the callback.
+
+Similarly:
+
+```swift
+var onMarkWatched: ((Movie) -> Void)?
+```
+
+The detail screen doesn't own the list's data. It asks the parent to perform the action.
+
+This pattern is useful because it reduces dependencies between views. The child view can be previewed independently by supplying a simple closure.
+
+---
+
+## 2️⃣9️⃣ Why are the previews important?
+
+Your tutorial encourages previews for every view and component.
+
+A preview is a small design-time environment in which SwiftUI can render a view with sample input.
+
+For a component that takes a movie, provide a sample movie:
+
+```swift
+#Preview("Unwatched Movie") {
+    MovieRowView(movie: MockDataStore.movies[0])
+}
+```
+
+For a view that depends on shared preferences, inject the dependency:
+
+```swift
+#Preview("Settings") {
+    SettingsSheetView()
+        .environment(UserPreferences())
+}
+```
+
+> **General rule:** a preview should supply the inputs and dependencies required by the view being previewed.
+
+Previews let you inspect layout and state differences without repeatedly navigating through the whole application.
+
+---
+
+## 3️⃣0️⃣ What happens to data when the app closes?
+
+In Parts 1 and 2, the movie list and preferences exist **in memory**.
+
+That means:
+
+- Newly added movies disappear after a fresh app launch.
+- Changes to watched status are not stored permanently.
+- Appearance and display-name preferences reset.
+- `MockDataStore` provides the initial movie list again.
+
+`@Observable` and `@State` **don't persist data to disk**. They manage state and observation while the app is running.
+
+Your tutorial introduces **SwiftData in Part 3**. That's where the storage architecture changes.
+
+---
+
+# Part 7 — Practise explaining the code yourself
+
+Try answering these questions without looking at the explanations above. Answer each aloud first, then check.
+
+## ✅ Self-test
+
+1. Why does `Movie` conform to `Identifiable`?
+2. Why is `Genre` an enum rather than a `String`?
+3. What does `@Observable` do?
+4. Why does `MovieListViewModel` own the `movies` array?
+5. Why does `filteredMovies` use a computed property?
+6. Why does `deleteMovies` use movie IDs?
+7. Why does `AddMovieView` have its own ViewModel?
+8. What does `@Bindable` do in `AddMovieView`?
+9. Why is `onSave` a closure?
+10. Why use `UserPreferences` in the environment?
+11. Why is `draftName` local state?
+12. Does `@Observable` save data between launches?
+
+---
+
+## 3️⃣1️⃣ Recommended order for learning this codebase
+
+1. **Model first:** understand `Movie`, `Genre`, UUIDs, initializers and the mock data.
+2. **Basic MVVM:** understand `MovieListViewModel` and `MovieListView`.
+3. **Layout and composition:** understand `MovieRowView`, `SharedComponents.swift` and `MovieDetailView`.
+4. **Callbacks:** trace how *Mark as Watched* reaches the ViewModel.
+5. **Search and deletion:** understand computed properties, filtering and IDs.
+6. **Form and bindings:** understand `AddMovieViewModel`, `@Bindable` and `onSave`.
+7. **Shared preferences:** understand `UserPreferences`, `@Environment` and theme selection.
+8. **Previews:** practise providing sample values and environment dependencies.
+9. **Persistence later:** once this version is clear, move to Part 3 and learn what changes when SwiftData replaces in-memory storage.
+
+> 🎯 The goal is not to memorise every line. It is to understand **why** the code is divided into these responsibilities and **how data travels** through the application. If you can recreate the basic list from scratch, explain the callback flow, and wire a new form control to an observable ViewModel, you're building the skills needed to write SwiftUI independently.

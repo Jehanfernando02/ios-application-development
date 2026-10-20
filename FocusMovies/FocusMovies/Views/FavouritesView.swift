@@ -38,7 +38,7 @@ struct FavouritesView: View {
     }
 }
 
-#Preview {
-    FavouritesView()
-        .environment(MovieViewModel())
-}
+//#Preview {
+//    FavouritesView()
+//        .environment(MovieViewModel())
+//}

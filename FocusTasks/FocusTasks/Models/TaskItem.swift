@@ -7,6 +7,7 @@
 
 import Foundation
 
+// Identifiable lets SwiftUI identify individual tasks.
 struct TaskItem: Identifiable {
     var id = UUID()
     var title: String

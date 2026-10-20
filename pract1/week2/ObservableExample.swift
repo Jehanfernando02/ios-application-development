@@ -1,18 +1,60 @@
-//
-//  ObservableExample.swift
-//  pract1
-//
-//  Created by Jehan Fernando on 2026-10-13.
-//
+
+/*
+ import Observation    Imports the Observation framework so you can use its features
+ @Observable    Marks a class so its property changes can be observed
+ Observable object    An object whose changes can be detected by SwiftUI
+ */
 
 import SwiftUI
+import Observation
 
-struct ObservableExample: View {
-    var body: some View {
-        Text(/*@START_MENU_TOKEN@*/"Hello, World!"/*@END_MENU_TOKEN@*/)
+
+// @Observable tells SwiftUI to observe this class.
+// When a property used by the View changes, SwiftUI knows about the change
+// and automatically updates the View with the new value.
+@Observable
+class ViewModel {
+
+    var count: Int = 0
+    var count2: Int = 0
+
+    // Increase the count
+    func increment() {
+        count += 1
+    }
+
+    // Decrease the count
+    func decrement() {
+        count -= 1
     }
 }
 
-#Preview {
-    ObservableExample()
+// can be ObservableView or ContentView or anything
+struct ObservableView: View {
+
+    @State private var viewModel = ViewModel()
+
+    var body: some View {
+
+        VStack(spacing: 20) {
+
+            Text("Count: \(viewModel.count)")
+
+            Button("Increment") {
+                viewModel.increment()
+            }
+
+            Button("Decrement") {
+                viewModel.decrement()
+            }
+        }
+        .padding()
+    }
 }
+
+
+
+#Preview {
+    ObservableView()
+}
+
