@@ -1,0 +1,232 @@
+import SwiftUI
+import Observation
+
+// enum defines a limited set of possible values.
+// CaseIterable allows Swift to provide all the cases through Genre.allCases
+
+enum Genre: String, CaseIterable {
+    case action = "Action"
+    case drama = "Drama"
+    case thriller = "Thriller"
+    case scifi = "Sci-Fi"
+    case comedy = "Comedy"
+    
+    // Computed Property : determines which string to return based on the current genre.
+    // Genre enum contains these cases; self refers to the current enum value
+    
+    var icon: String {
+        switch self {
+        case .action: return "flame.fill"
+        case .drama: return "theatermasks.fill"
+        case .thriller: return "eye.trianglebadge.exclamationmark.fill"
+        case .scifi: return "sparkles"
+        case .comedy: return "face.smiling.fill"
+        }
+    }
+    
+    var color: Color {
+        switch self {
+        case .action: return .red
+        case .drama: return .purple
+        case .thriller: return .orange
+        case .scifi: return .blue
+        case .comedy: return .yellow
+        }
+    }
+    
+}
+
+//  conforms to Identifiable so SwiftUI can identify each movie when iterating through the array.
+
+struct Movie: Identifiable {
+    let id: UUID
+    var title: String
+    var genre: Genre
+    var rating: Double
+    var year: Int
+    var synopsis: String
+    var duration: Int
+    var isWatched: Bool
+    
+    // The custom initializer creates the ID automatically and provides a default for isWatched
+    
+    init(
+        title: String,
+        genre: Genre,
+        rating: Double,
+        year: Int,
+        synopsis: String,
+        duration: Int,
+        isWatched: Bool = false
+    ) {
+        self.id = UUID()
+        self.title = title
+        self.genre = genre
+        self.rating = rating
+        self.year = year
+        self.synopsis = synopsis
+        self.duration = duration
+        self.isWatched = isWatched
+    }
+}
+
+
+//`static` means you access it through the type itself, rather than through an instance.
+// `You can access the sample data directly: MockDataStore.movies. There is no need to write MockDataStore() first.
+
+struct MockDataStore {
+    
+    static let movies: [Movie] = [
+        Movie(
+            title: "Openheimer",
+            genre: .drama,
+            rating: 8.9,
+            year: 2023,
+            synopsis: "The story of J. Robert Oppenheimer's role in the development of the atomic bomb during WWII.",
+            duration: 180,
+        ),
+        Movie(
+            title: "Dune: Part Two",
+            genre: .scifi,
+            rating: 8.6,
+            year: 2024,
+            synopsis: "Paul Atreides unites with Chani and the Fremen while seeking revenge.",
+            duration: 166,
+            isWatched: true
+        ),
+        Movie(
+            title: "The Dark Knight",
+            genre: .action,
+            rating: 9.0,
+            year: 2008,
+            synopsis: "Batman faces the Joker, who plunges Gotham City into anarchy.",
+            duration: 152,
+            isWatched: true
+        )
+        
+    ]
+}
+
+/*
+`@Observable` comes from the **Observation** framework. It makes the object's stored properties trackable so SwiftUI can update views when relevant state changes. It is the modern observation approach used, rather than the older `ObservableObject` and `@Published` pattern. `final` prevents the class from being subclassed. This is appropriate for these small ViewModels because the tutorial doesn't need subclasses.
+ */
+
+// movies.firstIndex(where: { $0.id == movie.id })
+/*
+ - `firstIndex` searches an array and returns the index of the first matching element.
+ - `{ ... }` is a ** closure ** — a block of code passed to a function.
+ - `$0` is shorthand for the closure's first argument.
+ - `$0.id == movie.id` checks whether the current array movie has the same ID as the movie passed to the method.
+ */
+
+@Observable
+final class MovieListViewModel {
+    var movies: [Movie] = MockDataStore.movies
+    
+    func markWatched(_ movie: Movie) {
+        if let index = movies.firstIndex(
+            where: { $0.id == movie.id }
+        ) {
+            movies[index].isWatched = true
+        }
+    }
+
+}
+
+
+struct MovieRowView: View {
+    
+    let movie: Movie
+    
+    var body: some View {
+        
+        HStack (spacing: 20) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(movie.genre.color.opacity(0.15))
+                    .frame(width:50, height: 50)
+                Image(systemName: movie.genre.icon)
+                .font(.title2)
+                .foregroundColor(movie.genre.color)
+            }
+            
+            VStack (alignment: .leading, spacing: 3) {
+                Text(movie.title)
+                    .font(.headline)
+                    .foregroundColor(movie.isWatched ? .secondary : .primary )
+                
+                Text("\(movie.genre.rawValue) • \(movie.year)")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                
+            }
+            
+            Spacer()
+            
+            HStack (spacing: 4) {
+                Image(systemName: "star.fill")
+                    .foregroundColor(.yellow)
+                    .font(.footnote)
+                
+                VStack(alignment: .trailing, spacing: 4) {
+                    Text(String(format: "%.1f", movie.rating))
+                        .font(.caption)
+                        .bold()
+                    
+                    if movie.isWatched {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                    }
+                }
+            }
+            .padding(.vertical, 4)
+        }
+        
+        
+        
+        
+    }
+}
+
+//This declares a SwiftUI view. The View protocol requires a body property that describes what the interface should look like.
+/*
+ some View means the property returns a value conforming to View, while allowing the compiler to infer its concrete type. A SwiftUI view can combine many nested views into a single expression.
+ */
+
+//private keyword limits access to the property to its enclosing type
+//    - `NavigationStack` manages a navigation hierarchy.
+//    - `List` creates a scrollable list of rows.
+//    - `NavigationLink` lets a user select a row and navigate to another view.
+//    - `.navigationTitle(...)` sets the navigation bar title.
+//    - `.listStyle(.plain)` changes the list's visual style.
+//    Here, `NavigationLink` displays a simple placeholder detail screen. The full tutorial will replace it with `MovieDetailView`.
+
+
+struct ContentView : View {
+    
+    @State private var viewModel = MovieListViewModel()
+    
+    // For each movie, the closure receives that movie and creates a row.
+
+    var body : some View {
+        NavigationStack {
+            List(viewModel.movies) { movie in
+                NavigationLink {
+                    Text(movie.title)
+                        .navigationTitle(movie.title)
+                } label: {
+                    MovieRowView(movie: movie)
+                }
+            }
+            .listStyle(.plain)
+            .navigationTitle("My Movie List")
+        }
+    }
+}
+    
+
+#Preview {
+    ContentView()
+}
+
+

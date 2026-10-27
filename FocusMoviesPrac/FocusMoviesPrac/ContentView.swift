@@ -9,16 +9,25 @@ import SwiftUI
 
 struct ContentView: View {
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+        
+        
+        TabView {
+            MovieListView()
+                .tabItem {
+                    Label("Movies", systemImage: "film")
+                }
+            
+            FavouritesView()
+                .tabItem {
+                    Label("Favourites", systemImage: "heart.fill")
+                }
         }
-        .padding()
+        
     }
 }
 
+
 #Preview {
     ContentView()
+        .environment(MovieViewModel())
 }

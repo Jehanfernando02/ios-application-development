@@ -71,5 +71,6 @@ struct MovieListView: View {
 // MARK: - Preview
 #Preview("Movie List") {
     MovieListView()
+        .environment(UserPreferences())
 }
 

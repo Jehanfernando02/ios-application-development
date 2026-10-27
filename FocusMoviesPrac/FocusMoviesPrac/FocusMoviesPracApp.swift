@@ -9,9 +9,13 @@ import SwiftUI
 
 @main
 struct FocusMoviesPracApp: App {
+    
+    @State private var viewModel = MovieViewModel()
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .environment(viewModel)
         }
     }
 }

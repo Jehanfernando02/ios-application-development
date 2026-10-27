@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  Models.swift
 //  TasksApp
 //
 //  Created by Jehan Fernando on 2026-10-21.
@@ -8,11 +8,8 @@
 import Foundation
 import SwiftData
 
-// Codable =
 enum Priority: String, Codable, CaseIterable, Identifiable {
-    case low
-    case medium
-    case high
+    case low, medium, high
     
     var id: String {
         rawValue
@@ -27,13 +24,11 @@ final class TaskItem {
     var createdAt: Date
     var category: Category?
     
-    init(
-        title: String,
-        priority: Priority,
-        isComplete: Bool = false,
-        createdAt: Date = .now ,
-        category: Category? = nil
-    ) {
+    init(title: String,
+         priority: Priority,
+         isComplete: Bool = false,
+         createdAt: Date = .now,
+         category: Category? = nil) {
         self.title = title
         self.priority = priority
         self.isComplete = isComplete
@@ -42,15 +37,20 @@ final class TaskItem {
     }
 }
 
-
+@Model
 final class Category {
     var name: String
+    
+    // when a category is deleted it should delete all tasks of that category
+    // nullify
+    // noAction
+    // deny
+    // cascade
+    @Relationship(deleteRule: .cascade, inverse: \TaskItem.category)
     var tasks: [TaskItem] = []
     
-    init(
-        name: String,
-    ) {
+    init(name: String) {
         self.name = name
-
     }
 }
+

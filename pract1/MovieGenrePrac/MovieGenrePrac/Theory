@@ -1,24 +1,3 @@
-App entry point : Creates shared preferences and launches the movie list
-
-Model : Movie, Genre, sample data
-ViewModels : Movie list, search, add form
-Views : MovieListView , MovieDetailView , AddMovieView , SettingsSheetView
-Reusable components: movie row, genre badge, rating and metadata
-
-The key principle is separation of responsibilities:
-- Model: describes a movie and its genre.
-- ViewModel: owns the data and implements actions such as searching and adding movies.
-- View: draws the screen and responds to user interaction.
-- App: launches the app and provides shared settings.
-
-
-
-
-
-
-
-
-
 # 🎬 MovieGenreFilter — SwiftUI MVVM Tutorial Notes
 
 ---
@@ -52,6 +31,7 @@ The app is a small movie tracker. It lets the user:
 - Change the app's appearance and display name.
 
 > In Parts 1 and 2, the data lives in memory. There is no database yet. Part 3 of your tutorial will introduce SwiftData.
+>
 
 ---
 
@@ -60,7 +40,7 @@ The app is a small movie tracker. It lets the user:
 The tutorial uses **MVVM** = **Model–View–ViewModel**.
 
 | Layer | Contains | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | **Model** | `Movie`, `Genre`, `MockDataStore` | Describes the data and domain concepts. |
 | **ViewModel** | `MovieListViewModel`, `AddMovieViewModel` | Owns state, filtering, validation and actions. |
 | **View** | `MovieListView`, `MovieDetailView`, `AddMovieView`, reusable components | Displays state and communicates user actions. |
@@ -77,7 +57,7 @@ The View doesn't need to know how filtering is implemented. The ViewModel doesn'
 ### What each layer should do
 
 | Layer | Responsibilities in this app |
-|---|---|
+| --- | --- |
 | Model | Define a movie's properties and the available genres. |
 | ViewModel | Hold the movie list, filter it, validate form input, and implement actions. |
 | View | Draw the list, detail screen, form and settings. |
@@ -85,6 +65,7 @@ The View doesn't need to know how filtering is implemented. The ViewModel doesn'
 | App | Create the app's root screen and provide shared preferences. |
 
 > **Why this matters:** when you add SwiftData in Part 3, you can change the storage mechanism without putting database code into every screen. When you add filters in Part 4, you can extend the ViewModel without redesigning the whole UI.
+>
 
 ---
 
@@ -234,6 +215,110 @@ let movie = Movie(
 
 You don't have to pass an ID or explicitly provide `isWatched`. The initializer handles those details.
 
+```swift
+var icon: String {
+    switch self {
+    case .action: return "flame.fill"
+    case .drama: return "theatermasks.fill"
+    case .thriller: return "eye.trianglebadge.exclamationmark.fill"
+    case .scifi: return "sparkles"
+    case .comedy: return "face.smiling.fill"
+    }
+}
+```
+
+Let's break it down.
+
+### 📖 Theory:  Why is it a computed property?
+
+A computed property calculates and returns a value when you access it, rather than storing a value directly.
+
+Look at this line:
+
+```
+var icon: String {
+```
+
+- `var` — declares a property.
+- `icon` — the property name.
+- `String` — the type of value it returns.
+- `{ ... }` — the code that calculates the value.
+
+There is no stored value assigned directly to `icon`. Instead, Swift executes the `switch` statement to determine which string to return.
+
+### What does `self` mean here?
+
+Your `Genre` enum contains these cases:
+
+```
+enum Genre {
+    case action
+    case drama
+    case thriller
+    case scifi
+    case comedy
+}
+```
+
+`self` refers to the current enum value.
+
+For example:
+
+```
+let genre = Genre.action
+print(genre.icon)
+```
+
+Here, `self` is `.action`, so the computed property returns `"flame.fill"`.
+
+How it works
+
+`genre.icon`
+
+`switch self`
+
+If the genre is `.action`
+
+Returns `"flame.fill"`
+
+### Computed property vs. stored property
+
+Stored property:
+
+```
+var title: String = "Oppenheimer"
+```
+
+The property stores the assigned string.
+
+Computed property:
+
+```
+var icon: String {
+    switch self {
+    case .action: return "flame.fill"
+    case .drama: return "theatermasks.fill"
+    case .thriller: return "eye.trianglebadge.exclamationmark.fill"
+    case .scifi: return "sparkles"
+    case .comedy: return "face.smiling.fill"
+    }
+}
+```
+
+The property determines which string to return based on the current genre.
+
+### Why use a computed property here?
+
+It keeps the icon mapping in one place. Whenever you need the icon, you can simply write:
+
+```
+Image(systemName: movie.genre.icon)
+```
+
+Swift evaluates `movie.genre.icon` and returns the appropriate SF Symbol name.
+
+Remember: A computed property looks like a property when you use it, but it executes code to produce its value. You access it as `genre.icon`, not `genre.icon()`, because it is a property, not a function.
+
 ### 📖 Theory: what is an enum?
 
 ```swift
@@ -287,6 +372,7 @@ struct MockDataStore {
 ```
 
 > This is a shortened dataset for the one-file exercise. Your actual tutorial's `MockDataStore.swift` contains **nine movies**. We'll restore all nine when we organise the final project.
+>
 
 ### 📖 Theory: what does `static let` mean?
 
@@ -309,6 +395,7 @@ There is no need to write `MockDataStore()` first.
 The ViewModel will start with a copy of the array's value. Because Swift arrays use **value semantics**, appending a movie to the ViewModel's array does not append it to `MockDataStore.movies`.
 
 > **Why mock data?** It lets you develop and test the interface without setting up a database, network request or backend. Later, SwiftData will replace the in-memory storage mechanism.
+>
 
 ---
 
@@ -370,6 +457,7 @@ movies[index].isWatched = true
 changes the watched status of the matching movie.
 
 > **Why search by ID rather than title?** IDs identify a particular movie instance. Titles are not guaranteed to be unique.
+>
 
 ---
 
@@ -527,6 +615,7 @@ Before splitting the code, make sure you can explain:
 9. How a row changes when `isWatched` changes.
 
 > This simplified version is not yet the complete tutorial app. In particular, it doesn't yet have the detail layout, search, add form, settings, all nine sample movies or the tutorial's full set of previews. Those come in the organised project below.
+>
 
 ---
 
@@ -534,7 +623,7 @@ Before splitting the code, make sure you can explain:
 
 Now create the structure from your tutorial. In Xcode, you can right-click the project navigator, choose **New Group** or create folders in Finder and add them to the project. Make sure the Swift files belong to the app target.
 
-```text
+```
 MovieGenreFilter/
 ├── App/
 │   ├── MovieGenreFilterApp.swift
@@ -567,6 +656,7 @@ MovieGenreFilter/
 - **App** contains the entry point and shared app-level configuration.
 
 > The folders don't automatically make code work differently. They make the project easier to navigate, understand, maintain and extend.
+>
 
 ---
 
@@ -1073,6 +1163,7 @@ The preview constructs the view with a known sample movie. It lets you inspect t
 `MockDataStore.movies[1]` accesses the **second** item in the array because Swift arrays use **zero-based indexing**: index `0` is the first item, index `1` is the second.
 
 > Previews are development tools. They are not extra screens that users navigate to at runtime.
+>
 
 ---
 
@@ -1341,6 +1432,7 @@ Your tutorial passes a `Movie` struct into `MovieDetailView`. Structs are **valu
 In this particular tutorial flow, returning to the list causes the list to render from the updated ViewModel array. However, the detail view's own `movie` value is **not automatically a live reference** to that array element. If you want the detail screen itself to immediately reflect the updated status while it remains open, the data flow needs to be expanded — for example, by passing a binding or resolving the latest movie by ID.
 
 > For learning the supplied tutorial, keep its callback pattern. Just understand this distinction between **passing a value** and **sharing live state**.
+>
 
 ---
 
@@ -1446,6 +1538,7 @@ struct MovieGenreFilterApp: App {
 `MovieListView()` is the first screen displayed.
 
 > ✅ At this point, the app is complete for Part 1. Run it and confirm that it shows **nine movies** and opens their detail screens.
+>
 
 ---
 
@@ -1533,6 +1626,7 @@ The code first saves the current filtered list. For every selected visible index
 This is essential because a visible row's index in search results may not match its index in the original list.
 
 > **Example:** searching for "Arrival" could produce one result at visible index `0`, even though Arrival is the ninth movie in the original array. Deleting the visible index directly from the original array could remove the wrong movie. Matching by ID avoids that.
+>
 
 The tutorial assumes the offsets refer to valid indices in the `filteredMovies` snapshot. This is the normal SwiftUI swipe-to-delete flow.
 
@@ -1655,6 +1749,7 @@ The tutorial nests it because the available appearance options are specifically 
 Keeping them in one observable object allows all interested views to read the same state instead of keeping separate, inconsistent copies.
 
 > Remember: this is still **in-memory** state, not persistent storage.
+>
 
 ---
 
@@ -1693,6 +1788,7 @@ They don't create a second object. They retrieve the shared object the app injec
 This is **dependency injection**: a view receives access to a dependency supplied from outside it, rather than constructing its own separate instance.
 
 > **Why is that useful?** If the settings screen created its own preferences object, changing its theme wouldn't necessarily change the object used by the app entry point. Injecting one shared instance keeps the app consistent.
+>
 
 ### 📖 Theory: why `@State` in the App?
 
@@ -1994,6 +2090,7 @@ SettingsSheetView()
 The view declares that it requires a `UserPreferences` object in its environment. A preview isn't necessarily launched inside the real app's environment, so the preview must supply a test instance.
 
 > **General rule:** if a view requires an environment dependency, provide that dependency in its preview too.
+>
 
 ---
 
@@ -2187,7 +2284,7 @@ If the name is empty, the app displays "Movie List". Otherwise, it includes the 
 ## 2️⃣4️⃣ Final architecture — how the files work together
 
 | Group | Files | Role |
-|---|---|---|
+| --- | --- | --- |
 | **App** | `MovieGenreFilterApp.swift` | Creates the shared preferences object and starts `MovieListView`. |
 | **Models** | `Movie.swift` · `MockDataStore.swift` | Defines movie data and provides initial sample movies. |
 | **ViewModels** | `MovieListViewModel.swift` · `AddMovieViewModel.swift` | Owns list state, filtering, deletion, form values and validation. |
@@ -2267,7 +2364,7 @@ Retrieves SwiftUI's dismissal action, used to close a sheet or dismiss the curre
 ## 2️⃣6️⃣ Operators and syntax that look complicated
 
 | Syntax | Meaning | Example in your app |
-|---|---|---|
+| --- | --- | --- |
 | `?` | Optional type or optional chaining, depending on context | `onMarkWatched?` |
 | `!` | Boolean NOT or forced unwrap, depending on context | `!isFormValid` |
 | `$` | Binding projection in SwiftUI | `$vm.searchText` |
@@ -2288,6 +2385,7 @@ movies.firstIndex(where: { $0.id == movie.id })
 Read it in plain English:
 
 > Search the movies array and return the first index where the current element's ID matches the supplied movie's ID.
+>
 
 That one expression uses an array method, a closure, shorthand argument syntax, property access and equality comparison.
 
@@ -2370,6 +2468,7 @@ For a view that depends on shared preferences, inject the dependency:
 ```
 
 > **General rule:** a preview should supply the inputs and dependencies required by the view being previewed.
+>
 
 Previews let you inspect layout and state differences without repeatedly navigating through the whole application.
 
@@ -2426,3 +2525,4 @@ Try answering these questions without looking at the explanations above. Answer 
 9. **Persistence later:** once this version is clear, move to Part 3 and learn what changes when SwiftData replaces in-memory storage.
 
 > 🎯 The goal is not to memorise every line. It is to understand **why** the code is divided into these responsibilities and **how data travels** through the application. If you can recreate the basic list from scratch, explain the callback flow, and wire a new form control to an observable ViewModel, you're building the skills needed to write SwiftUI independently.
+>
