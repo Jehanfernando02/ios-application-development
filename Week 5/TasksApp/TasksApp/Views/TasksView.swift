@@ -15,6 +15,7 @@ enum TaskFilter: String, CaseIterable, Identifiable {
     case completed
     
     var id: String { rawValue }
+
 }
 
 struct TasksView: View {
@@ -40,6 +41,7 @@ struct TasksView: View {
                 
             }
             .navigationTitle("Tasks")
+            .listStyle(.plain)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Add", systemImage: "plus") {
