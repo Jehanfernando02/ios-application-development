@@ -17,10 +17,10 @@ struct MovieDTO: Codable, Identifiable {
     
     enum CodingKeys: String, CodingKey {
         case id
-        case title
+        case title // same name → no text needed
         case description
         case director
-        case releaseDate = "release_date"
+        case releaseDate = "release_date"  // property releaseDate ⟷ JSON "release_date"
         case movieBanner = "movie_banner"
     }
 }
