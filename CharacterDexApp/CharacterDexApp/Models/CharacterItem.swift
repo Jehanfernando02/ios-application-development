@@ -10,7 +10,7 @@ import SwiftData
 
 @Model
 final class CharacterItem {
-    var remoteId: Int
+    var remoteID: Int
     var name: String
     var status: String
     var species: String
@@ -18,7 +18,7 @@ final class CharacterItem {
     var isFavorite: Bool
     
     init(dto: CharacterDTO) {
-        self.remoteId = dto.id
+        self.remoteID = dto.id
         self.name = dto.name
         self.status = dto.status
         self.species = dto.species
